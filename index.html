@@ -3,705 +3,951 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AIアート Studio</title>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+<title>AI画像生成</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
-:root{--bg:#f5f5f7;--white:#fff;--card:#fff;--border:#e5e5e7;--text:#1d1d1f;--muted:#6e6e73;--accent:#6366f1;--accent2:#4f46e5;--green:#34c759;--red:#ff3b30;--orange:#ff9500;--shadow:0 2px 12px rgba(0,0,0,.08);}
-body{background:var(--bg);color:var(--text);font-family:'Noto Sans JP',sans-serif;min-height:100vh;}
+:root{
+  --bg:#0f0f13;--s1:#18181f;--s2:#1e1e28;--s3:#25252f;
+  --border:#2a2a38;--border2:#333345;
+  --text:#e8e8f0;--muted:#6b6b8a;--muted2:#9090aa;
+  --accent:#7c5cfc;--accent2:#9f7ffe;--accent-glow:rgba(124,92,252,.35);
+  --green:#22c55e;--red:#ef4444;--orange:#f97316;--blue:#3b82f6;
+  --gold:#f59e0b;
+}
+body{background:var(--bg);color:var(--text);font-family:'Noto Sans JP',sans-serif;min-height:100vh;display:flex;flex-direction:column;}
 @keyframes spin{to{transform:rotate(360deg);}}
-@keyframes fadeUp{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:none;}}
-@keyframes shimmer{0%{background-position:-200% 0;}100%{background-position:200% 0;}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+@keyframes shimmer{0%{background-position:-400px 0;}100%{background-position:400px 0;}}
+@keyframes glow{0%,100%{box-shadow:0 0 8px var(--accent-glow);}50%{box-shadow:0 0 20px var(--accent-glow);}}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:var(--s1);}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
 
 /* ── Header ── */
-header{background:rgba(255,255,255,.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:.85rem 1.5rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
-.logo{font-size:1.25rem;font-weight:700;background:linear-gradient(135deg,#6366f1,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
-.conn-area{display:flex;align-items:center;gap:.6rem;}
-.conn-input{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-size:12px;color:var(--text);outline:none;width:180px;}
-.conn-input:focus{border-color:var(--accent);}
-.conn-btn{background:var(--accent);color:#fff;border:none;padding:6px 14px;border-radius:8px;font-size:12px;cursor:pointer;transition:opacity .15s;}
-.conn-btn:hover{opacity:.85;}
-.status-dot{width:8px;height:8px;border-radius:50%;background:#ccc;flex-shrink:0;}
-.status-dot.on{background:var(--green);}
+header{background:var(--s1);border-bottom:1px solid var(--border);padding:.7rem 1.25rem;display:flex;align-items:center;gap:1rem;z-index:100;flex-shrink:0;}
+.logo{font-size:1.1rem;font-weight:700;background:linear-gradient(135deg,var(--accent),#c084fc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;white-space:nowrap;}
+.nav-tabs{display:flex;gap:2px;flex:1;}
+.nav-tab{padding:5px 14px;border-radius:6px;font-size:13px;color:var(--muted2);cursor:pointer;border:none;background:transparent;transition:all .15s;font-family:'Noto Sans JP',sans-serif;}
+.nav-tab:hover{color:var(--text);background:var(--s3);}
+.nav-tab.active{color:var(--text);background:var(--s3);}
+.header-right{display:flex;align-items:center;gap:.5rem;margin-left:auto;}
+.sd-url-input{background:var(--s2);border:1px solid var(--border);border-radius:6px;padding:5px 10px;color:var(--text);font-size:11px;width:170px;outline:none;font-family:monospace;}
+.sd-url-input:focus{border-color:var(--accent);}
+.conn-btn{background:var(--s3);border:1px solid var(--border);color:var(--muted2);padding:5px 12px;border-radius:6px;font-size:11px;cursor:pointer;transition:all .15s;}
+.conn-btn:hover{border-color:var(--accent);color:var(--accent);}
+.status-badge{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--muted);}
+.status-dot{width:6px;height:6px;border-radius:50%;background:var(--muted);}
+.status-dot.on{background:var(--green);box-shadow:0 0 6px var(--green);}
 
-/* ── Layout ── */
-.app{display:grid;grid-template-columns:260px 1fr 280px;gap:1rem;padding:1rem;max-width:1400px;margin:0 auto;}
+/* ── Main Layout ── */
+.app{display:flex;flex:1;overflow:hidden;height:calc(100vh - 48px);}
 
-/* ── Sidebar ── */
-.sidebar{display:flex;flex-direction:column;gap:.75rem;}
-.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:1rem;box-shadow:var(--shadow);}
-.card-title{font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;margin-bottom:.75rem;}
+/* ══ LEFT PANEL ══ */
+.left-panel{width:320px;flex-shrink:0;background:var(--s1);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+.left-scroll{flex:1;overflow-y:auto;padding:.85rem;}
 
-/* ── Style Gallery ── */
-.style-scroll{display:flex;flex-direction:column;gap:.4rem;max-height:320px;overflow-y:auto;}
-.style-item{display:flex;align-items:center;gap:.6rem;padding:.5rem .6rem;border-radius:10px;cursor:pointer;border:2px solid transparent;transition:all .15s;}
-.style-item:hover{background:var(--bg);}
-.style-item.active{border-color:var(--accent);background:rgba(99,102,241,.06);}
-.style-thumb{width:40px;height:40px;border-radius:8px;object-fit:cover;flex-shrink:0;background:linear-gradient(135deg,var(--c1,#6366f1),var(--c2,#8b5cf6));}
-.style-name{font-size:13px;font-weight:500;}
-.style-desc{font-size:11px;color:var(--muted);}
+/* Mode tabs */
+.mode-tabs{display:flex;background:var(--s2);border-radius:8px;padding:3px;margin-bottom:1rem;border:1px solid var(--border);}
+.mode-tab{flex:1;padding:6px 4px;border-radius:6px;font-size:11px;font-weight:500;cursor:pointer;border:none;background:transparent;color:var(--muted2);text-align:center;transition:all .15s;font-family:'Noto Sans JP',sans-serif;}
+.mode-tab.active{background:var(--accent);color:#fff;box-shadow:0 2px 8px var(--accent-glow);}
 
-/* ── Aspect Ratio ── */
-.ratio-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.4rem;}
-.ratio-btn{padding:.5rem;border-radius:8px;border:1.5px solid var(--border);background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:.25rem;font-size:10px;color:var(--muted);transition:all .15s;}
-.ratio-btn:hover{border-color:var(--accent);color:var(--accent);}
-.ratio-btn.active{border-color:var(--accent);background:rgba(99,102,241,.08);color:var(--accent);font-weight:600;}
-.ratio-icon{border:2px solid currentColor;border-radius:2px;}
+/* Section */
+.sec{margin-bottom:.9rem;}
+.sec-title{font-size:11px;color:var(--muted2);font-weight:500;margin-bottom:.45rem;display:flex;align-items:center;justify-content:space-between;letter-spacing:.03em;}
+.sec-title-icon{font-size:13px;margin-right:.3rem;}
 
-/* ── Sliders ── */
-.param-row{margin-bottom:.6rem;}
-.param-label{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:.3rem;}
-.param-label span{color:var(--accent);font-weight:600;}
-input[type=range]{width:100%;accent-color:var(--accent);}
-select{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:13px;color:var(--text);outline:none;font-family:'Noto Sans JP',sans-serif;}
-select:focus{border-color:var(--accent);}
-textarea,input[type=text]{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--text);outline:none;font-family:'Noto Sans JP',sans-serif;transition:border-color .15s;}
-textarea:focus,input[type=text]:focus{border-color:var(--accent);}
-textarea{resize:none;}
-::placeholder{color:#aaa;}
+/* Model selector */
+.model-btn{width:100%;background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:.55rem .75rem;display:flex;align-items:center;gap:.6rem;cursor:pointer;transition:all .15s;}
+.model-btn:hover{border-color:var(--accent);}
+.model-thumb{width:44px;height:44px;border-radius:7px;object-fit:cover;background:linear-gradient(135deg,#7c5cfc33,#c084fc33);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.2rem;}
+.model-info{flex:1;min-width:0;}
+.model-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.model-tag{font-size:10px;color:var(--muted2);margin-top:1px;}
+.model-arrow{color:var(--muted);font-size:12px;flex-shrink:0;}
 
-/* ── Center ── */
-.center{display:flex;flex-direction:column;gap:.75rem;}
+/* Model picker modal */
+.model-picker{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:none;align-items:center;justify-content:center;}
+.model-picker.show{display:flex;}
+.model-picker-inner{background:var(--s1);border:1px solid var(--border);border-radius:16px;width:680px;max-height:80vh;overflow:hidden;display:flex;flex-direction:column;}
+.model-picker-head{padding:.85rem 1.1rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.model-picker-head h3{font-size:15px;font-weight:600;}
+.model-search{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:7px 12px;color:var(--text);font-size:13px;outline:none;width:200px;}
+.model-search:focus{border-color:var(--accent);}
+.model-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.65rem;padding:1rem;overflow-y:auto;flex:1;}
+.model-card{background:var(--s2);border:1.5px solid var(--border);border-radius:10px;overflow:hidden;cursor:pointer;transition:all .15s;}
+.model-card:hover,.model-card.selected{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent);}
+.model-card-thumb{width:100%;aspect-ratio:1;object-fit:cover;background:linear-gradient(135deg,#7c5cfc22,#c084fc22);display:flex;align-items:center;justify-content:center;font-size:2rem;}
+.model-card-name{padding:.3rem .4rem;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 
-/* ── Prompt Area ── */
-.prompt-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:1rem;box-shadow:var(--shadow);}
-.prompt-tabs{display:flex;gap:.3rem;margin-bottom:.75rem;}
-.prompt-tab{padding:5px 14px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:1.5px solid var(--border);background:transparent;color:var(--muted);transition:all .15s;}
-.prompt-tab.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+/* LoRA */
+.lora-add{background:var(--s2);border:1px dashed var(--border2);border-radius:8px;padding:.4rem .7rem;font-size:12px;color:var(--muted2);cursor:pointer;display:flex;align-items:center;gap:.35rem;width:100%;transition:all .15s;}
+.lora-add:hover{border-color:var(--accent);color:var(--accent);}
+.lora-tag{display:inline-flex;align-items:center;gap:.3rem;background:rgba(124,92,252,.15);border:1px solid rgba(124,92,252,.3);border-radius:20px;padding:3px 10px;font-size:11px;color:var(--accent2);margin:.2rem .2rem 0 0;}
+.lora-tag .remove{cursor:pointer;opacity:.6;}
+.lora-tag .remove:hover{opacity:1;}
+
+/* Prompt */
 .prompt-wrap{position:relative;}
-.prompt-textarea{width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:12px;padding:.85rem 1rem;font-size:14px;color:var(--text);outline:none;font-family:'Noto Sans JP',sans-serif;resize:none;line-height:1.6;transition:border-color .15s;}
+.prompt-textarea{width:100%;background:var(--s2);border:1.5px solid var(--border);border-radius:10px;padding:.7rem .85rem;color:var(--text);font-size:13px;line-height:1.6;outline:none;resize:none;font-family:'Noto Sans JP',sans-serif;transition:border-color .15s;}
 .prompt-textarea:focus{border-color:var(--accent);}
-.prompt-actions{display:flex;align-items:center;gap:.5rem;margin-top:.6rem;}
-.btn-generate{flex:1;background:linear-gradient(135deg,var(--accent),#8b5cf6);color:#fff;border:none;padding:.85rem;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;transition:opacity .15s;display:flex;align-items:center;justify-content:center;gap:.4rem;}
-.btn-generate:hover{opacity:.9;}
-.btn-generate:disabled{opacity:.4;cursor:not-allowed;}
-.btn-icon{width:40px;height:40px;border-radius:10px;border:1.5px solid var(--border);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:all .15s;}
-.btn-icon:hover{border-color:var(--accent);}
+.prompt-textarea::placeholder{color:var(--muted);}
+.prompt-tools{display:flex;gap:.35rem;margin-top:.35rem;}
+.p-tool-btn{background:var(--s2);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:11px;color:var(--muted2);cursor:pointer;transition:all .15s;}
+.p-tool-btn:hover{border-color:var(--accent);color:var(--accent);}
 
-/* ── Results Grid ── */
-.results-header{display:flex;align-items:center;justify-content:space-between;}
-.results-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:.75rem;}
-.result-card{border-radius:14px;overflow:hidden;background:var(--card);border:1px solid var(--border);box-shadow:var(--shadow);cursor:pointer;transition:transform .2s,box-shadow .2s;animation:fadeUp .4s ease;}
-.result-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.12);}
-.result-img{width:100%;aspect-ratio:1;object-fit:cover;display:block;background:linear-gradient(135deg,#f0f0f5,#e8e8f0);background-size:200% 200%;animation:shimmer 1.5s infinite;}
-.result-img.loaded{animation:none;}
-.result-info{padding:.6rem .75rem;border-top:1px solid var(--border);}
-.result-prompt{font-size:11px;color:var(--muted);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
-.result-actions{display:flex;gap:.4rem;margin-top:.45rem;}
-.result-btn{flex:1;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:transparent;font-size:10px;cursor:pointer;color:var(--muted);transition:all .15s;font-family:'Noto Sans JP',sans-serif;}
-.result-btn:hover{border-color:var(--accent);color:var(--accent);}
-.result-btn.primary{background:var(--accent);color:#fff;border-color:var(--accent);}
-.result-btn.primary:hover{opacity:.85;color:#fff;}
+/* Quick tags */
+.quick-tags{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.4rem;}
+.qtag{background:var(--s3);border:1px solid var(--border2);border-radius:20px;padding:3px 9px;font-size:11px;color:var(--muted2);cursor:pointer;transition:all .12s;}
+.qtag:hover{background:rgba(124,92,252,.15);border-color:var(--accent);color:var(--accent2);}
 
-/* ── Progress ── */
-.progress-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:1.25rem;box-shadow:var(--shadow);text-align:center;display:none;}
-.progress-spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto .75rem;}
-.progress-bar-bg{background:var(--bg);border-radius:4px;height:4px;overflow:hidden;margin:.6rem 0;}
-.progress-bar-fill{height:100%;background:linear-gradient(90deg,var(--accent),#8b5cf6);border-radius:4px;transition:width .4s;width:0%;}
-.progress-label{font-size:13px;color:var(--muted);}
-.progress-pct{font-size:1.5rem;font-weight:700;color:var(--accent);margin:.25rem 0;}
+/* Image size */
+.size-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:.35rem;}
+.size-btn{background:var(--s2);border:1.5px solid var(--border);border-radius:7px;padding:.45rem .2rem;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;transition:all .15s;}
+.size-btn:hover{border-color:var(--accent);}
+.size-btn.active{border-color:var(--accent);background:rgba(124,92,252,.12);}
+.size-icon{border:1.5px solid var(--muted2);border-radius:2px;}
+.size-btn.active .size-icon{border-color:var(--accent);}
+.size-label{font-size:9px;color:var(--muted2);}
+.size-btn.active .size-label{color:var(--accent2);}
 
-/* ── Right Panel: Image Edit ── */
-.edit-panel{display:flex;flex-direction:column;gap:.75rem;}
-.upload-zone{border:2px dashed var(--border);border-radius:12px;padding:1.5rem;text-align:center;cursor:pointer;transition:all .15s;background:var(--bg);}
-.upload-zone:hover,.upload-zone.drag{border-color:var(--accent);background:rgba(99,102,241,.04);}
-.upload-zone p{font-size:12px;color:var(--muted);margin-top:.4rem;}
-.upload-preview{width:100%;border-radius:10px;display:none;aspect-ratio:1;object-fit:cover;cursor:pointer;}
+/* Custom size */
+.custom-size{display:grid;grid-template-columns:1fr auto 1fr;gap:.35rem;align-items:center;margin-top:.4rem;}
+.size-input{background:var(--s2);border:1px solid var(--border);border-radius:6px;padding:5px 8px;color:var(--text);font-size:12px;text-align:center;outline:none;width:100%;font-family:'Noto Sans JP',sans-serif;}
+.size-input:focus{border-color:var(--accent);}
 
-/* ── Edit Mode ── */
-.edit-mode-tabs{display:flex;gap:.3rem;margin-bottom:.6rem;}
-.edit-tab{flex:1;padding:5px;border-radius:8px;font-size:11px;font-weight:500;cursor:pointer;border:1.5px solid var(--border);background:transparent;color:var(--muted);text-align:center;transition:all .15s;}
-.edit-tab.active{background:var(--orange);color:#fff;border-color:var(--orange);}
+/* Count */
+.count-row{display:flex;gap:.35rem;}
+.count-btn{flex:1;background:var(--s2);border:1.5px solid var(--border);border-radius:7px;padding:.4rem;text-align:center;font-size:13px;cursor:pointer;transition:all .15s;}
+.count-btn:hover{border-color:var(--accent);}
+.count-btn.active{border-color:var(--accent);background:rgba(124,92,252,.12);color:var(--accent2);font-weight:600;}
 
-/* Strength indicator */
-.strength-indicator{display:flex;gap:3px;margin:.3rem 0;}
-.strength-bar{flex:1;height:3px;border-radius:2px;background:var(--border);}
-.strength-bar.on{background:var(--orange);}
+/* Quality */
+.quality-row{display:flex;gap:.35rem;}
+.quality-btn{flex:1;background:var(--s2);border:1.5px solid var(--border);border-radius:7px;padding:.4rem;text-align:center;font-size:11px;cursor:pointer;transition:all .15s;color:var(--muted2);}
+.quality-btn:hover{border-color:var(--accent);}
+.quality-btn.active{border-color:var(--accent);background:rgba(124,92,252,.12);color:var(--accent2);}
+.quality-badge{font-size:9px;margin-left:2px;}
 
-/* ── Tag pills ── */
-.tag-wrap{display:flex;flex-wrap:wrap;gap:.3rem;margin-bottom:.5rem;}
-.tag{padding:3px 10px;border-radius:20px;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2);color:var(--accent);font-size:11px;cursor:pointer;transition:all .15s;}
-.tag:hover{background:var(--accent);color:#fff;}
+/* Slider */
+.slider-row{margin-bottom:.6rem;}
+.slider-label{display:flex;justify-content:space-between;font-size:11px;color:var(--muted2);margin-bottom:.3rem;}
+.slider-label span{color:var(--accent2);font-weight:500;}
+input[type=range]{width:100%;accent-color:var(--accent);height:3px;}
+select{width:100%;background:var(--s2);border:1px solid var(--border);border-radius:7px;padding:6px 10px;color:var(--text);font-size:12px;outline:none;font-family:'Noto Sans JP',sans-serif;}
+select:focus{border-color:var(--accent);}
 
-/* ── Empty state ── */
-.empty-state{text-align:center;padding:3rem 1rem;color:var(--muted);}
-.empty-state .icon{font-size:3rem;margin-bottom:.5rem;}
-.empty-state p{font-size:14px;}
+/* Seed row */
+.seed-row{display:flex;gap:.35rem;align-items:center;}
+.seed-input{flex:1;background:var(--s2);border:1px solid var(--border);border-radius:7px;padding:6px 10px;color:var(--text);font-size:12px;outline:none;font-family:monospace;}
+.seed-input:focus{border-color:var(--accent);}
+.seed-dice{background:var(--s3);border:1px solid var(--border);border-radius:7px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;flex-shrink:0;transition:all .15s;}
+.seed-dice:hover{border-color:var(--accent);}
 
-/* ── Modal ── */
-.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
-.modal-bg.show{display:flex;}
-.modal{background:#fff;border-radius:20px;overflow:hidden;max-width:90vw;max-height:90vh;box-shadow:0 20px 60px rgba(0,0,0,.2);animation:fadeUp .25s ease;}
-.modal img,.modal video{max-width:80vw;max-height:80vh;object-fit:contain;display:block;}
-.modal-actions{padding:.75rem 1rem;display:flex;gap:.5rem;border-top:1px solid var(--border);}
+/* Img2Img upload */
+.img-upload{border:1.5px dashed var(--border2);border-radius:10px;padding:1.1rem;text-align:center;cursor:pointer;transition:all .15s;background:var(--s2);}
+.img-upload:hover,.img-upload.drag{border-color:var(--accent);background:rgba(124,92,252,.06);}
+.img-upload p{font-size:11px;color:var(--muted2);margin-top:.3rem;}
+.uploaded-img{width:100%;border-radius:8px;display:none;cursor:pointer;}
 
-@media(max-width:900px){.app{grid-template-columns:1fr;}.edit-panel{order:-1;}}
+/* Strength */
+.strength-vis{display:flex;gap:2px;margin:.3rem 0;}
+.strength-seg{flex:1;height:3px;border-radius:2px;background:var(--border);}
+.strength-seg.on{background:var(--orange);}
+
+/* Generate btn */
+.gen-btn-wrap{padding:.85rem;border-top:1px solid var(--border);flex-shrink:0;}
+.gen-btn{width:100%;background:linear-gradient(135deg,var(--accent),#9f7ffe);color:#fff;border:none;padding:.85rem;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;transition:opacity .15s;display:flex;align-items:center;justify-content:center;gap:.4rem;font-family:'Noto Sans JP',sans-serif;}
+.gen-btn:hover{opacity:.9;}
+.gen-btn:disabled{opacity:.4;cursor:not-allowed;}
+
+/* ══ CENTER ══ */
+.center{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg);}
+.center-top{flex:1;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;}
+.results-grid{width:100%;height:100%;padding:.85rem;display:grid;gap:.65rem;overflow-y:auto;align-content:start;}
+.results-grid.n1{grid-template-columns:1fr;}
+.results-grid.n2{grid-template-columns:repeat(2,1fr);}
+.results-grid.n4{grid-template-columns:repeat(2,1fr);}
+.result-card{position:relative;border-radius:12px;overflow:hidden;background:var(--s2);cursor:pointer;animation:fadeIn .35s ease;border:1.5px solid var(--border);transition:border-color .2s;}
+.result-card:hover{border-color:var(--accent);}
+.result-img{width:100%;display:block;object-fit:cover;}
+.result-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.8) 0%,transparent 50%);opacity:0;transition:opacity .2s;display:flex;flex-direction:column;justify-content:flex-end;padding:.75rem;}
+.result-card:hover .result-overlay{opacity:1;}
+.result-actions{display:flex;gap:.35rem;}
+.r-btn{flex:1;background:rgba(255,255,255,.12);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.15);border-radius:7px;color:#fff;padding:5px 4px;font-size:10px;cursor:pointer;text-align:center;transition:all .15s;font-family:'Noto Sans JP',sans-serif;}
+.r-btn:hover{background:var(--accent);border-color:var(--accent);}
+.result-seed{font-size:9px;color:rgba(255,255,255,.5);margin-bottom:.3rem;font-family:monospace;}
+
+/* Empty / Progress */
+.center-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:1rem;color:var(--muted);}
+.center-empty .big-icon{font-size:4rem;opacity:.4;}
+.center-empty p{font-size:14px;}
+.progress-area{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:.85rem;background:var(--bg);z-index:10;}
+.progress-area.show{display:flex;}
+.prog-spinner{width:48px;height:48px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;}
+.prog-pct{font-size:2.5rem;font-weight:700;color:var(--accent);}
+.prog-bar-bg{width:280px;height:4px;background:var(--s2);border-radius:4px;overflow:hidden;}
+.prog-bar-fill{height:100%;background:linear-gradient(90deg,var(--accent),#c084fc);transition:width .4s;width:0%;}
+.prog-label{font-size:12px;color:var(--muted2);}
+.prog-cancel{font-size:12px;color:var(--muted);cursor:pointer;text-decoration:underline;}
+.prog-cancel:hover{color:var(--red);}
+
+/* Center bottom: prompt echo */
+.center-bottom{border-top:1px solid var(--border);padding:.6rem 1rem;background:var(--s1);font-size:11px;color:var(--muted);display:flex;align-items:center;gap:.5rem;}
+.center-bottom .prompt-echo{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+/* ══ RIGHT PANEL ══ */
+.right-panel{width:260px;flex-shrink:0;background:var(--s1);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+.right-scroll{flex:1;overflow-y:auto;padding:.85rem;}
+.r-sec-title{font-size:11px;color:var(--muted2);font-weight:500;margin-bottom:.55rem;letter-spacing:.03em;}
+
+/* History */
+.hist-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.35rem;margin-bottom:1rem;}
+.hist-thumb{aspect-ratio:1;border-radius:7px;overflow:hidden;cursor:pointer;background:var(--s2);border:1.5px solid var(--border);transition:border-color .15s;}
+.hist-thumb:hover{border-color:var(--accent);}
+.hist-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+.hist-thumb-empty{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:1.2rem;opacity:.3;}
+
+/* Inspiration */
+.insp-card{background:var(--s2);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:.6rem;cursor:pointer;transition:border-color .15s;}
+.insp-card:hover{border-color:var(--accent);}
+.insp-thumb{width:100%;aspect-ratio:16/9;object-fit:cover;background:linear-gradient(135deg,var(--s3),var(--s2));display:flex;align-items:center;justify-content:center;font-size:2rem;}
+.insp-info{padding:.5rem .65rem;}
+.insp-prompt{font-size:11px;color:var(--muted2);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.insp-use{font-size:10px;color:var(--accent2);margin-top:.3rem;cursor:pointer;}
+
+/* Divider */
+.divider{border:none;border-top:1px solid var(--border);margin:.6rem 0;}
+
+/* Inline controls shorthand */
+.row{display:flex;align-items:center;gap:.4rem;}
+.flex1{flex:1;}
+
+/* ControlNet area */
+.cn-mode-tabs{display:flex;flex-wrap:wrap;gap:.3rem;margin-bottom:.5rem;}
+.cn-tab{padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:transparent;font-size:11px;color:var(--muted2);cursor:pointer;transition:all .15s;}
+.cn-tab.active{background:rgba(124,92,252,.15);border-color:var(--accent);color:var(--accent2);}
+
+/* ── Tooltip ── */
+[data-tip]{position:relative;}
+[data-tip]:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 5px);left:50%;transform:translateX(-50%);background:var(--s3);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:10px;color:var(--text);white-space:nowrap;z-index:50;pointer-events:none;}
 </style>
 </head>
 <body>
 
+<!-- HEADER -->
 <header>
-  <div class="logo">✦ AIアート</div>
-  <div class="conn-area">
-    <input class="conn-input" type="text" id="sd-url" value="http://127.0.0.1:7860" placeholder="AUTOMATIC1111 URL">
-    <button class="conn-btn" onclick="checkConn()">接続</button>
-    <div class="status-dot" id="sdot" title="接続状態"></div>
-    <span id="stext" style="font-size:12px;color:var(--muted);">未接続</span>
+  <div class="logo">✦ AIアート Studio</div>
+  <div class="nav-tabs">
+    <button class="nav-tab active">画像生成</button>
+    <button class="nav-tab">動画生成</button>
+    <button class="nav-tab">キャンバス</button>
+  </div>
+  <div class="header-right">
+    <input class="sd-url-input" type="text" id="sd-url" value="http://127.0.0.1:7860" placeholder="AUTOMATIC1111 URL">
+    <button class="conn-btn" onclick="checkConn()">接続確認</button>
+    <div class="status-badge"><div class="status-dot" id="sdot"></div><span id="stext">未接続</span></div>
   </div>
 </header>
 
 <div class="app">
 
-<!-- ═══ LEFT SIDEBAR ═══ -->
-<div class="sidebar">
+<!-- ════ LEFT PANEL ════ -->
+<div class="left-panel">
+<div class="left-scroll">
 
-  <!-- Style -->
-  <div class="card">
-    <div class="card-title">スタイル</div>
-    <div class="style-scroll" id="style-list">
-      <!-- populated by JS -->
+  <!-- Mode tabs -->
+  <div class="mode-tabs">
+    <button class="mode-tab active" onclick="setMode('txt2img',this)">テキスト生成</button>
+    <button class="mode-tab" onclick="setMode('img2img',this)">画像から生成</button>
+    <button class="mode-tab" onclick="setMode('controlnet',this)">ControlNet</button>
+  </div>
+
+  <!-- Model -->
+  <div class="sec">
+    <div class="sec-title"><span>🎨 モデル</span><span style="color:var(--accent2);font-size:10px;cursor:pointer;" onclick="openModelPicker()">もっと見る</span></div>
+    <div class="model-btn" onclick="openModelPicker()">
+      <div class="model-thumb" id="selected-model-thumb">🖼</div>
+      <div class="model-info">
+        <div class="model-name" id="selected-model-name">モデルを選択...</div>
+        <div class="model-tag" id="selected-model-tag">クリックして選択</div>
+      </div>
+      <div class="model-arrow">›</div>
     </div>
   </div>
 
-  <!-- Aspect Ratio -->
-  <div class="card">
-    <div class="card-title">サイズ・比率</div>
-    <div class="ratio-grid" id="ratio-grid">
-      <!-- populated by JS -->
-    </div>
+  <!-- LoRA -->
+  <div class="sec">
+    <div class="sec-title"><span>🔧 LoRA（スタイル追加）</span></div>
+    <div id="lora-tags"></div>
+    <button class="lora-add" onclick="addLora()"><span>＋</span> LoRAを追加</button>
+    <input type="text" id="lora-input" placeholder="LoRA名を入力してEnter" style="display:none;margin-top:.35rem;background:var(--s2);border:1px solid var(--border);border-radius:7px;padding:6px 10px;color:var(--text);font-size:12px;outline:none;width:100%;" onkeydown="if(event.key==='Enter')confirmLora()">
   </div>
-
-  <!-- Settings -->
-  <div class="card">
-    <div class="card-title">詳細設定</div>
-    <div class="param-row">
-      <div class="param-label">クオリティ <span id="steps-v">28</span></div>
-      <input type="range" min="10" max="50" value="28" id="param-steps" oninput="document.getElementById('steps-v').textContent=this.value">
-    </div>
-    <div class="param-row">
-      <div class="param-label">プロンプト強度 <span id="cfg-v">7</span></div>
-      <input type="range" min="1" max="15" step=".5" value="7" id="param-cfg" oninput="document.getElementById('cfg-v').textContent=parseFloat(this.value).toFixed(1)">
-    </div>
-    <div class="param-row">
-      <div class="param-label">生成枚数</div>
-      <select id="param-batch">
-        <option value="1">1枚</option>
-        <option value="2" selected>2枚</option>
-        <option value="4">4枚</option>
-      </select>
-    </div>
-    <div class="param-row">
-      <div class="param-label">サンプラー</div>
-      <select id="param-sampler">
-        <option>DPM++ 2M Karras</option>
-        <option>Euler a</option>
-        <option>DDIM</option>
-      </select>
-    </div>
-    <div class="param-row">
-      <div class="param-label" style="margin-bottom:.3rem;">ネガティブ</div>
-      <input type="text" id="neg-prompt" value="blurry, lowres, bad anatomy, ugly, watermark" placeholder="除外したい要素">
-    </div>
-  </div>
-
-</div><!-- /sidebar -->
-
-<!-- ═══ CENTER ═══ -->
-<div class="center">
 
   <!-- Prompt -->
-  <div class="prompt-card">
-    <div class="prompt-tabs">
-      <button class="prompt-tab active" onclick="setPromptMode('create')">✦ 新規作成</button>
-      <button class="prompt-tab" onclick="setPromptMode('edit')">✎ 画像を編集</button>
-    </div>
-
-    <!-- Quick tags -->
-    <div class="tag-wrap" id="quick-tags"></div>
-
+  <div class="sec">
+    <div class="sec-title"><span>✍️ プロンプト</span><span style="font-size:10px;color:var(--muted);">日本語・英語OK</span></div>
     <div class="prompt-wrap">
-      <textarea class="prompt-textarea" id="main-prompt" rows="3" placeholder="作りたいものを日本語や英語で自由に入力してください。例：笑顔の女性、朝の光、映画的な雰囲気"></textarea>
+      <textarea class="prompt-textarea" id="main-prompt" rows="4" placeholder="作りたいものを入力してください&#10;例: 笑顔の女性、桜の木の下、映画的な光"></textarea>
     </div>
-    <div class="prompt-actions">
-      <button class="btn-icon" onclick="clearPrompt()" title="クリア">🗑</button>
-      <button class="btn-icon" onclick="randomPrompt()" title="ランダム">🎲</button>
-      <button class="btn-icon" onclick="translatePrompt()" title="翻訳補助">🌐</button>
-      <button class="btn-generate" id="gen-btn" onclick="generate()">
-        <span id="gen-btn-text">✦ 生成する</span>
-      </button>
+    <div class="prompt-tools">
+      <button class="p-tool-btn" onclick="clearPrompt()" data-tip="クリア">🗑</button>
+      <button class="p-tool-btn" onclick="randomPrompt()" data-tip="ランダム">🎲</button>
+      <button class="p-tool-btn" onclick="translateHelper()" data-tip="翻訳ヒント">🌐</button>
+      <button class="p-tool-btn" onclick="toggleTags()" data-tip="タグ一覧" style="margin-left:auto;">＋ タグ</button>
     </div>
+    <div class="quick-tags" id="quick-tags" style="display:none;"></div>
   </div>
 
-  <!-- Progress -->
-  <div class="progress-card" id="progress-card">
-    <div class="progress-spinner"></div>
-    <div class="progress-pct" id="prog-pct">0%</div>
-    <div class="progress-bar-bg"><div class="progress-bar-fill" id="prog-fill"></div></div>
-    <div class="progress-label" id="prog-label">生成準備中...</div>
+  <!-- Negative -->
+  <div class="sec">
+    <div class="sec-title"><span>🚫 除外したい要素</span></div>
+    <textarea class="prompt-textarea" id="neg-prompt" rows="2" placeholder="生成から除外したいもの&#10;例: ぼやけた、低品質、透かし">blurry, lowres, bad anatomy, bad hands, ugly, deformed, watermark, text</textarea>
   </div>
 
-  <!-- Results -->
-  <div class="card">
-    <div class="results-header" style="margin-bottom:.75rem;">
-      <span style="font-size:13px;font-weight:600;">生成結果</span>
-      <button onclick="clearResults()" style="font-size:12px;color:var(--muted);background:none;border:none;cursor:pointer;">クリア</button>
+  <!-- Img2Img upload (hidden by default) -->
+  <div class="sec" id="img2img-sec" style="display:none;">
+    <div class="sec-title"><span>📸 元画像</span></div>
+    <div class="img-upload" id="img-upload-zone" onclick="document.getElementById('img-file').click()">
+      <div style="font-size:1.8rem;">📁</div>
+      <p>クリックまたはドロップで画像を選択</p>
     </div>
-    <div id="results-area">
-      <div class="empty-state">
-        <div class="icon">🎨</div>
-        <p>プロンプトを入力して生成してください</p>
+    <img id="uploaded-img" class="uploaded-img" onclick="document.getElementById('img-file').click()">
+    <input type="file" id="img-file" accept="image/*" style="display:none" onchange="loadImg(this)">
+    <div id="img2img-controls" style="display:none;margin-top:.6rem;">
+      <div class="slider-row">
+        <div class="slider-label">変化の強さ（大きいほど変化） <span id="denoise-v">0.6</span></div>
+        <input type="range" min="0.05" max="0.95" step="0.05" value="0.6" id="param-denoise" oninput="updateDenoise(this.value)">
+        <div class="strength-vis" id="strength-vis"></div>
       </div>
     </div>
   </div>
 
-</div><!-- /center -->
-
-<!-- ═══ RIGHT: EDIT PANEL ═══ -->
-<div class="edit-panel">
-
-  <div class="card">
-    <div class="card-title">📸 画像で編集</div>
-
-    <div style="margin-bottom:.6rem;">
-      <div class="upload-zone" id="upload-zone" onclick="document.getElementById('img-file').click()">
-        <div style="font-size:2rem;">📁</div>
-        <p>クリックまたはドロップで<br>画像をアップロード</p>
-      </div>
-      <img id="upload-preview" class="upload-preview" onclick="document.getElementById('img-file').click()">
-      <input type="file" id="img-file" accept="image/*" style="display:none" onchange="loadEditImage(this)">
+  <!-- ControlNet (hidden by default) -->
+  <div class="sec" id="controlnet-sec" style="display:none;">
+    <div class="sec-title"><span>🎛 ControlNet</span></div>
+    <div class="cn-mode-tabs">
+      <button class="cn-tab active" onclick="selCN(this)">OpenPose（骨格）</button>
+      <button class="cn-tab" onclick="selCN(this)">Depth（奥行き）</button>
+      <button class="cn-tab" onclick="selCN(this)">Canny（輪郭）</button>
+      <button class="cn-tab" onclick="selCN(this)">Scribble（落書き）</button>
     </div>
+    <div class="img-upload" id="cn-upload" onclick="document.getElementById('cn-file').click()">
+      <div style="font-size:1.5rem;">📁</div>
+      <p>ControlNet用の画像を選択</p>
+    </div>
+    <img id="cn-preview" class="uploaded-img" onclick="document.getElementById('cn-file').click()">
+    <input type="file" id="cn-file" accept="image/*" style="display:none" onchange="loadCN(this)">
+  </div>
 
-    <div id="edit-controls" style="display:none;">
-      <div class="edit-mode-tabs">
-        <button class="edit-tab active" data-mode="img2img" onclick="setEditMode(this)">画像変換</button>
-        <button class="edit-tab" data-mode="inpaint" onclick="setEditMode(this)">部分編集</button>
-        <button class="edit-tab" data-mode="upscale" onclick="setEditMode(this)">高解像度化</button>
+  <!-- Image size -->
+  <div class="sec">
+    <div class="sec-title"><span>📐 画像サイズ</span></div>
+    <div class="size-grid">
+      <button class="size-btn active" data-w="512" data-h="512" onclick="selSize(this)"><div class="size-icon" style="width:18px;height:18px;"></div><div class="size-label">1:1</div></button>
+      <button class="size-btn" data-w="768" data-h="512" onclick="selSize(this)"><div class="size-icon" style="width:24px;height:16px;"></div><div class="size-label">3:2</div></button>
+      <button class="size-btn" data-w="512" data-h="768" onclick="selSize(this)"><div class="size-icon" style="width:16px;height:24px;"></div><div class="size-label">2:3</div></button>
+      <button class="size-btn" data-w="768" data-h="432" onclick="selSize(this)"><div class="size-icon" style="width:28px;height:16px;"></div><div class="size-label">16:9</div></button>
+      <button class="size-btn" data-w="432" data-h="768" onclick="selSize(this)"><div class="size-icon" style="width:16px;height:28px;"></div><div class="size-label">9:16</div></button>
+    </div>
+    <div class="custom-size" style="margin-top:.4rem;">
+      <input class="size-input" type="number" id="custom-w" value="512" min="64" max="2048" step="64" oninput="updateCustomSize()"> 
+      <span style="color:var(--muted);font-size:12px;text-align:center;">×</span>
+      <input class="size-input" type="number" id="custom-h" value="512" min="64" max="2048" step="64" oninput="updateCustomSize()">
+    </div>
+  </div>
+
+  <!-- Count -->
+  <div class="sec">
+    <div class="sec-title"><span>🔢 生成枚数</span></div>
+    <div class="count-row">
+      <div class="count-btn active" onclick="selCount(this,1)">1</div>
+      <div class="count-btn" onclick="selCount(this,2)">2</div>
+      <div class="count-btn" onclick="selCount(this,4)">4</div>
+    </div>
+  </div>
+
+  <!-- Quality -->
+  <div class="sec">
+    <div class="sec-title"><span>⭐ クオリティ</span></div>
+    <div class="quality-row">
+      <div class="quality-btn active" data-steps="20" onclick="selQuality(this)">標準<span class="quality-badge">⚡</span></div>
+      <div class="quality-btn" data-steps="28" onclick="selQuality(this)">高品質<span class="quality-badge">✨</span></div>
+      <div class="quality-btn" data-steps="40" onclick="selQuality(this)">最高品質<span class="quality-badge">💎</span></div>
+    </div>
+  </div>
+
+  <!-- Advanced -->
+  <div class="sec">
+    <div class="sec-title" style="cursor:pointer;" onclick="toggleAdv()">
+      <span>⚙️ 詳細設定</span>
+      <span id="adv-arrow" style="font-size:12px;">▾</span>
+    </div>
+    <div id="adv-panel">
+      <div class="slider-row">
+        <div class="slider-label">プロンプト忠実度（CFG） <span id="cfg-v">7.0</span></div>
+        <input type="range" min="1" max="15" step=".5" value="7" id="param-cfg" oninput="document.getElementById('cfg-v').textContent=parseFloat(this.value).toFixed(1)">
       </div>
-
-      <div id="edit-img2img">
-        <div class="param-row">
-          <div class="param-label">変化の強さ <span id="denoise-v">0.55</span></div>
-          <input type="range" min="0.1" max="0.95" step="0.05" value="0.55" id="param-denoise" oninput="updateDenoiseVis(this.value)">
-          <div class="strength-indicator" id="strength-bars"></div>
-          <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:2px;"><span>元画像に近い</span><span>大きく変化</span></div>
+      <div class="slider-row">
+        <div class="slider-label">ステップ数 <span id="steps-v">28</span></div>
+        <input type="range" min="10" max="60" value="28" id="param-steps" oninput="document.getElementById('steps-v').textContent=this.value">
+      </div>
+      <div class="slider-row">
+        <div class="slider-label">生成アルゴリズム</div>
+        <select id="param-sampler">
+          <option>DPM++ 2M Karras</option>
+          <option>Euler a</option>
+          <option>DDIM</option>
+          <option>DPM++ SDE Karras</option>
+          <option>UniPC</option>
+        </select>
+      </div>
+      <div class="slider-row">
+        <div class="slider-label">シード（同じ値で同じ結果）</div>
+        <div class="seed-row">
+          <input class="seed-input" type="number" id="param-seed" value="-1" placeholder="-1でランダム">
+          <div class="seed-dice" onclick="randomSeed()" data-tip="ランダム">🎲</div>
         </div>
-
-        <div class="param-row">
-          <div class="param-label" style="margin-bottom:.35rem;">編集プロンプト</div>
-          <textarea id="edit-prompt" rows="2" placeholder="変更したい内容を入力&#10;例：笑顔にして、髪を赤くして"></textarea>
-        </div>
-
-        <!-- Quick edit tags -->
-        <div class="card-title" style="margin:.5rem 0 .3rem;">クイック変更</div>
-        <div class="tag-wrap" id="edit-tags"></div>
-
-        <button onclick="generateEdit()" style="width:100%;padding:.75rem;background:linear-gradient(135deg,#ff9500,#ff6b35);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;margin-top:.4rem;">✎ 変更を適用</button>
       </div>
-
-      <div id="edit-upscale" style="display:none;">
-        <div class="param-row">
-          <div class="param-label">拡大倍率</div>
-          <select id="upscale-factor"><option value="2">2x</option><option value="4">4x</option></select>
-        </div>
-        <div class="param-row">
-          <div class="param-label">アップスケーラー</div>
-          <select id="upscaler"><option>R-ESRGAN 4x+</option><option>ESRGAN_4x</option><option>Lanczos</option></select>
-        </div>
-        <button onclick="generateUpscale()" style="width:100%;padding:.75rem;background:linear-gradient(135deg,#34c759,#30b050);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;">↑ 高解像度化</button>
+      <div class="slider-row">
+        <div class="slider-label">アップスケール（高解像度化）</div>
+        <select id="param-hires">
+          <option value="">なし</option>
+          <option value="R-ESRGAN 4x+">R-ESRGAN 4x+ (おすすめ)</option>
+          <option value="ESRGAN_4x">ESRGAN 4x</option>
+          <option value="Latent">Latent</option>
+        </select>
       </div>
     </div>
   </div>
 
-  <!-- History -->
-  <div class="card">
-    <div class="card-title">最近の生成</div>
-    <div id="mini-hist" style="display:flex;flex-wrap:wrap;gap:.4rem;">
-      <div style="font-size:11px;color:var(--muted);">まだ生成していません</div>
+</div><!-- /left-scroll -->
+
+<!-- GENERATE BUTTON -->
+<div class="gen-btn-wrap">
+  <button class="gen-btn" id="gen-btn" onclick="generate()">
+    <span id="gen-icon">✦</span>
+    <span id="gen-label">生成する</span>
+  </button>
+</div>
+</div><!-- /left-panel -->
+
+<!-- ════ CENTER ════ -->
+<div class="center">
+  <div class="center-top">
+    <!-- Empty state -->
+    <div class="center-empty" id="center-empty">
+      <div class="big-icon">🎨</div>
+      <p>プロンプトを入力して「生成する」を押してください</p>
+      <div style="font-size:12px;color:var(--muted);max-width:300px;text-align:center;line-height:1.6;">ヒント: スタイルやLoRAを選ぶとより思い通りの画像が生成できます</div>
     </div>
+
+    <!-- Progress -->
+    <div class="progress-area" id="progress-area">
+      <div class="prog-spinner"></div>
+      <div class="prog-pct" id="prog-pct">0%</div>
+      <div class="prog-bar-bg"><div class="prog-bar-fill" id="prog-fill"></div></div>
+      <div class="prog-label" id="prog-label">生成準備中...</div>
+      <div class="prog-cancel" onclick="cancelGen()">キャンセル</div>
+    </div>
+
+    <!-- Results -->
+    <div class="results-grid n2" id="results-grid" style="display:none;"></div>
+  </div>
+  <div class="center-bottom">
+    <span>💬</span>
+    <span class="prompt-echo" id="prompt-echo">プロンプトがここに表示されます</span>
+  </div>
+</div>
+
+<!-- ════ RIGHT PANEL ════ -->
+<div class="right-panel">
+<div class="right-scroll">
+
+  <div class="r-sec-title">📁 最近の生成</div>
+  <div class="hist-grid" id="hist-grid">
+    <div class="hist-thumb"><div class="hist-thumb-empty">🖼</div></div>
+    <div class="hist-thumb"><div class="hist-thumb-empty">🖼</div></div>
+    <div class="hist-thumb"><div class="hist-thumb-empty">🖼</div></div>
+    <div class="hist-thumb"><div class="hist-thumb-empty">🖼</div></div>
+    <div class="hist-thumb"><div class="hist-thumb-empty">🖼</div></div>
+    <div class="hist-thumb"><div class="hist-thumb-empty">🖼</div></div>
   </div>
 
-</div><!-- /edit-panel -->
+  <hr class="divider">
+
+  <div class="r-sec-title" style="margin-bottom:.6rem;">✨ インスピレーション</div>
+  <div id="insp-list"></div>
+
+  <hr class="divider">
+  <div class="r-sec-title">📊 生成情報</div>
+  <div id="gen-info" style="font-size:11px;color:var(--muted2);line-height:1.9;">
+    <div>モデル: —</div>
+    <div>サイズ: —</div>
+    <div>ステップ: —</div>
+    <div>シード: —</div>
+    <div>生成時間: —</div>
+  </div>
+
+</div>
+</div>
+
 </div><!-- /app -->
 
-<!-- Modal -->
-<div class="modal-bg" id="modal" onclick="closeModal()">
-  <div class="modal" onclick="event.stopPropagation()">
-    <img id="modal-img" src="" alt="">
-    <div class="modal-actions">
-      <button onclick="downloadModalImg()" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);background:transparent;cursor:pointer;font-size:13px;">↓ 保存</button>
-      <button onclick="sendToEdit()" style="flex:1;padding:8px;border-radius:8px;background:var(--orange);color:#fff;border:none;cursor:pointer;font-size:13px;font-weight:600;">✎ 編集に使用</button>
-      <button onclick="closeModal()" style="padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:transparent;cursor:pointer;font-size:13px;">✕</button>
+<!-- MODEL PICKER -->
+<div class="model-picker" id="model-picker" onclick="closeModelPicker()">
+  <div class="model-picker-inner" onclick="event.stopPropagation()">
+    <div class="model-picker-head">
+      <h3>🎨 モデルを選択</h3>
+      <div style="display:flex;align-items:center;gap:.6rem;">
+        <input class="model-search" type="text" placeholder="モデルを検索..." oninput="filterModels(this.value)" id="model-search">
+        <button onclick="closeModelPicker()" style="background:none;border:none;color:var(--muted2);font-size:1.3rem;cursor:pointer;">✕</button>
+      </div>
+    </div>
+    <div class="model-grid" id="model-grid">
+      <div style="grid-column:1/-1;text-align:center;padding:2rem;color:var(--muted2);font-size:13px;">
+        「接続確認」後にモデル一覧が表示されます
+      </div>
     </div>
   </div>
 </div>
 
 <script>
 // ═══ DATA ═══
-const STYLES = [
-  {id:'realistic',name:'リアル写真',desc:'写真・実写風',colors:['#1a1a2e','#16213e'],prompt:'photorealistic, detailed photography, professional photo, 8k, sharp focus'},
-  {id:'anime',name:'アニメ',desc:'日本アニメ風',colors:['#ff6b9d','#c44569'],prompt:'anime style, vibrant colors, detailed illustration, studio quality'},
-  {id:'portrait',name:'ポートレート',desc:'人物・顔写真',colors:['#f8b500','#e44d26'],prompt:'portrait photography, beautiful lighting, shallow depth of field, professional'},
-  {id:'landscape',name:'風景',desc:'自然・景色',colors:['#56ab2f','#a8e063'],prompt:'landscape photography, scenic view, golden hour, cinematic, stunning'},
-  {id:'fantasy',name:'ファンタジー',desc:'魔法・異世界',colors:['#8e2de2','#4a00e0'],prompt:'fantasy art, magical atmosphere, epic scene, detailed concept art'},
-  {id:'cyberpunk',name:'サイバーパンク',desc:'未来都市',colors:['#00f5ff','#0a0a2e'],prompt:'cyberpunk style, neon lights, futuristic city, rain, detailed, cinematic'},
-  {id:'oil',name:'油絵',desc:'クラシック絵画',colors:['#b8860b','#8b4513'],prompt:'oil painting, classical art style, masterpiece, rich textures, museum quality'},
-  {id:'watercolor',name:'水彩',desc:'透明感のある絵',colors:['#74ebd5','#acb6e5'],prompt:'watercolor painting, soft colors, artistic, beautiful, delicate'},
-  {id:'3d',name:'3Dアート',desc:'CGレンダリング',colors:['#667eea','#764ba2'],prompt:'3D render, octane render, high quality, cinematic lighting, detailed'},
-  {id:'minimal',name:'ミニマル',desc:'シンプル・クリーン',colors:['#f5f5f5','#e0e0e0'],prompt:'minimalist design, clean, simple, elegant, modern'},
+const RANDOM_PROMPTS=[
+  '笑顔の女性、桜の木の下、柔らかい春の光、映画的なボケ、masterpiece',
+  '夜の東京、ネオンが光る雨の路地、孤独な人物、cinematic, detailed',
+  '銀河を背景にした古城、魔法の光、fantasy art, epic, detailed',
+  '深海の神秘的な光、巨大なクジラ、浮遊する泡、dreamy atmosphere',
+  '雪山の夕焼け、オーロラ、美しい自然、landscape photography, 8k',
+  'サイバーパンク都市、雨、ネオン、未来的な建物、cinematic lighting',
+  '花畑でお茶を飲む女の子、watercolor style, soft colors, peaceful',
 ];
 
-const RATIOS = [
-  {id:'1:1',w:512,h:512,label:'1:1',desc:'正方形',icon:{w:24,h:24}},
-  {id:'4:3',w:680,h:512,label:'4:3',desc:'横長',icon:{w:28,h:21}},
-  {id:'3:4',w:512,h:680,label:'3:4',desc:'縦長',icon:{w:21,h:28}},
-  {id:'16:9',w:768,h:432,label:'16:9',desc:'ワイド',icon:{w:32,h:18}},
-  {id:'9:16',w:432,h:768,label:'9:16',desc:'縦ワイド',icon:{w:18,h:32}},
-  {id:'2:3',w:512,h:768,label:'2:3',desc:'ポートレート',icon:{w:20,h:30}},
+const QUICK_TAGS_LIST=[
+  '笑顔','悲しい','怒り','驚き',
+  '夜景','朝の光','夕焼け','雨',
+  '桜','花畑','森','海辺','雪',
+  'アニメ風','写真風','水彩','油絵',
+  '映画的','ポートレート','風景','建物',
 ];
 
-const QUICK_TAGS = ['笑顔','青い空','夜景','花畑','猫','ドラゴン','城','宇宙','海辺','森','カフェ','雪景色'];
-const EDIT_TAGS = ['笑顔にして','髪を赤くして','背景を変えて','服を変えて','照明を暖かく','モノクロにして','若くして','怒った表情に','驚いた顔に','目を閉じて'];
-const RANDOM_PROMPTS = [
-  '朝の光が差し込む森の中の小さなカフェ、蒸気が立ち上るコーヒー',
-  '夜の東京、ネオンが光る雨の路地、孤独な傘の人物',
-  '銀河を背景に浮かぶ古城、魔法の光が漏れる窓',
-  '満開の桜の下で笑う女性、柔らかい春の光',
-  '深海の神秘的な光、巨大なクジラと小さな潜水艇',
+const INSPIRATIONS=[
+  {emoji:'🌸',prompt:'桜の木の下で微笑む女性、柔らかい春の光、浅い被写界深度',style:'写真風'},
+  {emoji:'🌌',prompt:'星空を背景にしたファンタジーの城、魔法の光、詳細なイラスト',style:'ファンタジー'},
+  {emoji:'🌆',prompt:'サイバーパンクの夜の都市、ネオンの光、雨、映画的な雰囲気',style:'SF'},
+  {emoji:'🐉',prompt:'火を吐くドラゴン、山々、叙事詩的なシーン、詳細なCGアート',style:'CG'},
 ];
 
 // State
-let selectedStyle = STYLES[0];
-let selectedRatio = RATIOS[0];
-let editMode = 'img2img';
-let editImageB64 = null;
-let promptMode = 'create';
-let allResults = [];
-let progTimer = null;
-let modalImgSrc = null;
+let currentMode='txt2img';
+let selectedW=512, selectedH=512;
+let selectedCount=1;
+let selectedSteps=20;
+let editImageB64=null;
+let cnImageB64=null;
+let allModels=[];
+let selectedModelName='';
+let selectedLoRAs=[];
+let progTimer=null;
+let results=[];
+let advOpen=true;
+let tagsOpen=false;
+let genStartTime=0;
 
 // ═══ INIT ═══
-function init() {
-  buildStyleList();
-  buildRatioGrid();
+function init(){
+  buildInspList();
   buildQuickTags();
-  buildEditTags();
-  buildStrengthBars();
-  loadMiniHist();
+  initStrengthVis();
+  loadLocalHist();
 }
 
-function buildStyleList() {
-  document.getElementById('style-list').innerHTML = STYLES.map(s => `
-    <div class="style-item ${s.id===selectedStyle.id?'active':''}" onclick="selectStyle('${s.id}')">
-      <div class="style-thumb" style="--c1:${s.colors[0]};--c2:${s.colors[1]};"></div>
-      <div><div class="style-name">${s.name}</div><div class="style-desc">${s.desc}</div></div>
+function buildInspList(){
+  document.getElementById('insp-list').innerHTML=INSPIRATIONS.map((p,i)=>`
+    <div class="insp-card" onclick="useInsp(${i})">
+      <div class="insp-thumb">${p.emoji}</div>
+      <div class="insp-info">
+        <div class="insp-prompt">${p.prompt}</div>
+        <div class="insp-use">▶ このプロンプトを使う</div>
+      </div>
     </div>`).join('');
 }
 
-function selectStyle(id) {
-  selectedStyle = STYLES.find(s=>s.id===id);
-  buildStyleList();
+function buildQuickTags(){
+  document.getElementById('quick-tags').innerHTML=QUICK_TAGS_LIST.map(t=>
+    `<span class="qtag" onclick="appendTag('${t}')">${t}</span>`).join('');
 }
 
-function buildRatioGrid() {
-  document.getElementById('ratio-grid').innerHTML = RATIOS.map(r => `
-    <button class="ratio-btn ${r.id===selectedRatio.id?'active':''}" onclick="selectRatio('${r.id}')">
-      <div class="ratio-icon" style="width:${r.icon.w}px;height:${r.icon.h}px;"></div>
-      <div>${r.label}</div>
-      <div style="font-size:9px;">${r.desc}</div>
-    </button>`).join('');
-}
-
-function selectRatio(id) {
-  selectedRatio = RATIOS.find(r=>r.id===id);
-  buildRatioGrid();
-}
-
-function buildQuickTags() {
-  document.getElementById('quick-tags').innerHTML = QUICK_TAGS.map(t =>
-    `<span class="tag" onclick="appendTag('${t}')">${t}</span>`).join('');
-}
-
-function buildEditTags() {
-  document.getElementById('edit-tags').innerHTML = EDIT_TAGS.map(t =>
-    `<span class="tag" style="background:rgba(255,149,0,.08);border-color:rgba(255,149,0,.3);color:var(--orange);" onclick="appendEditTag('${t}')">${t}</span>`).join('');
-}
-
-function buildStrengthBars() {
-  const n=10;
-  document.getElementById('strength-bars').innerHTML = Array(n).fill(0).map((_,i)=>
-    `<div class="strength-bar ${i<5?'on':''}" id="sb-${i}"></div>`).join('');
-}
-
-function updateDenoiseVis(val) {
-  document.getElementById('denoise-v').textContent = parseFloat(val).toFixed(2);
-  const n=10, on=Math.round(val*n);
-  for(let i=0;i<n;i++) {
-    const b=document.getElementById('sb-'+i);
-    b.style.background = i<on ? 'var(--orange)' : 'var(--border)';
-  }
-}
-
-function appendTag(t) {
-  const el=document.getElementById('main-prompt');
-  el.value=(el.value?el.value+', ':'')+t;el.focus();
-}
-function appendEditTag(t) {
-  const el=document.getElementById('edit-prompt');
-  el.value=(el.value?el.value+'、':'')+t;el.focus();
-}
+function useInsp(i){document.getElementById('main-prompt').value=INSPIRATIONS[i].prompt;}
+function appendTag(t){const el=document.getElementById('main-prompt');el.value=(el.value?el.value+', ':'')+t;el.focus();}
 function clearPrompt(){document.getElementById('main-prompt').value='';}
 function randomPrompt(){document.getElementById('main-prompt').value=RANDOM_PROMPTS[Math.floor(Math.random()*RANDOM_PROMPTS.length)];}
+function randomSeed(){document.getElementById('param-seed').value=Math.floor(Math.random()*999999999);}
+function toggleAdv(){advOpen=!advOpen;document.getElementById('adv-panel').style.display=advOpen?'block':'none';document.getElementById('adv-arrow').textContent=advOpen?'▾':'▸';}
+function toggleTags(){tagsOpen=!tagsOpen;document.getElementById('quick-tags').style.display=tagsOpen?'flex':'none';}
+function translateHelper(){alert('ヒント: 日本語のまま入力できます。\n英語にするとより精度が上がる場合があります。\n\n例: 笑顔の女性 → smiling woman, beautiful, detailed');}
 
-async function translatePrompt() {
-  const text = document.getElementById('main-prompt').value.trim();
-  if (!text) return;
-  // Simple heuristic: if contains Japanese, it's already good; just append style
-  document.getElementById('main-prompt').value = text;
-  alert('ヒント: 日本語のまま入力してもAUTOMATIC1111が自動翻訳します。スタイルは自動付加されます。');
+// ═══ MODE ═══
+function setMode(mode, btn){
+  currentMode=mode;
+  document.querySelectorAll('.mode-tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('img2img-sec').style.display=mode==='img2img'?'block':'none';
+  document.getElementById('controlnet-sec').style.display=mode==='controlnet'?'block':'none';
 }
 
-function setPromptMode(mode) {
-  promptMode = mode;
-  document.querySelectorAll('.prompt-tab').forEach((t,i)=>t.classList.toggle('active',['create','edit'][i]===mode));
-  if(mode==='edit') {
-    document.getElementById('main-prompt').placeholder='編集内容を入力してください。例：笑顔にして、背景を夕焼けにして';
-    document.getElementById('upload-zone').style.border='2px solid var(--orange)';
-  } else {
-    document.getElementById('main-prompt').placeholder='作りたいものを日本語や英語で自由に入力してください';
-    document.getElementById('upload-zone').style.border='';
+// ═══ SIZE ═══
+function selSize(btn){
+  document.querySelectorAll('.size-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  selectedW=parseInt(btn.dataset.w);
+  selectedH=parseInt(btn.dataset.h);
+  document.getElementById('custom-w').value=selectedW;
+  document.getElementById('custom-h').value=selectedH;
+}
+function updateCustomSize(){
+  document.querySelectorAll('.size-btn').forEach(b=>b.classList.remove('active'));
+  selectedW=parseInt(document.getElementById('custom-w').value)||512;
+  selectedH=parseInt(document.getElementById('custom-h').value)||512;
+}
+
+// ═══ COUNT ═══
+function selCount(btn,n){
+  document.querySelectorAll('.count-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  selectedCount=n;
+  const grid=document.getElementById('results-grid');
+  grid.className='results-grid '+(n===1?'n1':n===2?'n2':'n4');
+}
+
+// ═══ QUALITY ═══
+function selQuality(btn){
+  document.querySelectorAll('.quality-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  selectedSteps=parseInt(btn.dataset.steps);
+  document.getElementById('param-steps').value=selectedSteps;
+  document.getElementById('steps-v').textContent=selectedSteps;
+}
+
+// ═══ STRENGTH ═══
+function initStrengthVis(){
+  const n=10;
+  document.getElementById('strength-vis').innerHTML=Array(n).fill(0).map((_,i)=>
+    `<div class="strength-seg ${i<6?'on':''}" id="ss-${i}"></div>`).join('');
+}
+function updateDenoise(v){
+  document.getElementById('denoise-v').textContent=parseFloat(v).toFixed(2);
+  const n=10,on=Math.round(v*n);
+  for(let i=0;i<n;i++)document.getElementById('ss-'+i).style.background=i<on?'var(--orange)':'var(--border)';
+}
+
+// ═══ MODEL PICKER ═══
+function openModelPicker(){
+  document.getElementById('model-picker').classList.add('show');
+  if(allModels.length)renderModelGrid(allModels);
+  else fetchModels();
+}
+function closeModelPicker(){document.getElementById('model-picker').classList.remove('show');}
+
+async function fetchModels(){
+  document.getElementById('model-grid').innerHTML='<div style="grid-column:1/-1;text-align:center;padding:2rem;color:var(--muted2);font-size:13px;">モデルを読み込み中...</div>';
+  try{
+    const r=await fetch(sdUrl()+'/sdapi/v1/sd-models');
+    const models=await r.json();
+    allModels=models;
+    renderModelGrid(models);
+  }catch{
+    document.getElementById('model-grid').innerHTML='<div style="grid-column:1/-1;text-align:center;padding:2rem;color:var(--muted2);font-size:13px;">接続確認を押してください</div>';
   }
 }
+
+function renderModelGrid(models){
+  const emojis=['🎨','🖼','✨','🌸','🔮','🎭','🌟','💫'];
+  document.getElementById('model-grid').innerHTML=models.map((m,i)=>`
+    <div class="model-card ${m.title===selectedModelName?'selected':''}" onclick="selectModel('${m.title}','${m.model_name}')">
+      <div class="model-card-thumb">${emojis[i%emojis.length]}</div>
+      <div class="model-card-name">${m.model_name||m.title}</div>
+    </div>`).join('');
+}
+
+function filterModels(q){
+  const filtered=allModels.filter(m=>(m.model_name||m.title).toLowerCase().includes(q.toLowerCase()));
+  renderModelGrid(filtered);
+}
+
+function selectModel(title, name){
+  selectedModelName=title;
+  document.getElementById('selected-model-name').textContent=name;
+  document.getElementById('selected-model-tag').textContent=title.split('.')[0];
+  document.querySelectorAll('.model-card').forEach(c=>c.classList.remove('selected'));
+  event.currentTarget.classList.add('selected');
+  closeModelPicker();
+}
+
+// ═══ LORA ═══
+function addLora(){
+  const inp=document.getElementById('lora-input');
+  inp.style.display=inp.style.display==='none'?'block':'none';
+  if(inp.style.display==='block')inp.focus();
+}
+function confirmLora(){
+  const val=document.getElementById('lora-input').value.trim();
+  if(!val)return;
+  selectedLoRAs.push(val);
+  renderLoraTags();
+  document.getElementById('lora-input').value='';
+  document.getElementById('lora-input').style.display='none';
+}
+function removeLora(i){selectedLoRAs.splice(i,1);renderLoraTags();}
+function renderLoraTags(){
+  document.getElementById('lora-tags').innerHTML=selectedLoRAs.map((l,i)=>
+    `<span class="lora-tag">${l} <span class="remove" onclick="removeLora(${i})">✕</span></span>`).join('');
+}
+
+// ═══ IMG UPLOAD ═══
+function loadImg(inp){
+  const f=inp.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    editImageB64=ev.target.result;
+    const img=document.getElementById('uploaded-img');
+    img.src=ev.target.result;img.style.display='block';
+    document.getElementById('img-upload-zone').style.display='none';
+    document.getElementById('img2img-controls').style.display='block';
+  };r.readAsDataURL(f);
+}
+function loadCN(inp){
+  const f=inp.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    cnImageB64=ev.target.result;
+    const img=document.getElementById('cn-preview');
+    img.src=ev.target.result;img.style.display='block';
+    document.getElementById('cn-upload').style.display='none';
+  };r.readAsDataURL(f);
+}
+
+// Drag drop
+const uz=document.getElementById('img-upload-zone');
+uz.addEventListener('dragover',e=>{e.preventDefault();uz.classList.add('drag');});
+uz.addEventListener('dragleave',()=>uz.classList.remove('drag'));
+uz.addEventListener('drop',e=>{e.preventDefault();uz.classList.remove('drag');const f=e.dataTransfer.files[0];if(f?.type.startsWith('image/')){const dt=new DataTransfer();dt.items.add(f);document.getElementById('img-file').files=dt.files;loadImg({files:dt.files});}});
+
+// ControlNet tab
+function selCN(btn){document.querySelectorAll('.cn-tab').forEach(t=>t.classList.remove('active'));btn.classList.add('active');}
 
 // ═══ GENERATE ═══
-function buildPrompt() {
-  const user = document.getElementById('main-prompt').value.trim();
-  const style = selectedStyle.prompt;
-  return [user, style].filter(Boolean).join(', ');
-}
-
-async function generate() {
-  if(promptMode==='edit' && editImageB64) {generateEdit();return;}
-  const prompt = buildPrompt();
-  if(!prompt.replace(/,\s*/g,'').trim()) {alert('プロンプトを入力してください');return;}
+async function generate(){
+  const prompt=buildPrompt();
+  if(!prompt.trim()){showAlert('プロンプトを入力してください');return;}
 
   setGenerating(true);
-  startProgress();
+  startProg();
+  genStartTime=Date.now();
 
-  const payload = {
-    prompt,
-    negative_prompt: document.getElementById('neg-prompt').value,
-    steps: parseInt(document.getElementById('param-steps').value),
-    cfg_scale: parseFloat(document.getElementById('param-cfg').value),
-    width: selectedRatio.w,
-    height: selectedRatio.h,
-    batch_size: parseInt(document.getElementById('param-batch').value),
-    sampler_name: document.getElementById('param-sampler').value,
-    seed: -1,
+  document.getElementById('prompt-echo').textContent=prompt;
+  document.getElementById('center-empty').style.display='none';
+  document.getElementById('results-grid').style.display='none';
+
+  const loraStr=selectedLoRAs.map(l=>`<lora:${l}:1>`).join(' ');
+  const fullPrompt=loraStr?`${prompt} ${loraStr}`:prompt;
+
+  const isImg2Img=currentMode==='img2img'&&editImageB64;
+  const endpoint=isImg2Img?'/sdapi/v1/img2img':'/sdapi/v1/txt2img';
+
+  const payload={
+    prompt:fullPrompt,
+    negative_prompt:document.getElementById('neg-prompt').value,
+    steps:parseInt(document.getElementById('param-steps').value),
+    cfg_scale:parseFloat(document.getElementById('param-cfg').value),
+    width:selectedW,
+    height:selectedH,
+    batch_size:selectedCount,
+    sampler_name:document.getElementById('param-sampler').value,
+    seed:parseInt(document.getElementById('param-seed').value)||−1,
+    restore_faces:false,
   };
 
-  try {
-    const r = await fetch(sdUrl()+'/sdapi/v1/txt2img', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-    const d = await r.json();
-    if(d.images) showResults(d.images, prompt);
-    else throw new Error(d.error||JSON.stringify(d));
-  } catch(e) {
-    alert('エラー: '+e.message+'\n\nAUTOMATIC1111が --api フラグ付きで起動しているか確認してください。');
-  } finally {
-    setGenerating(false);
-    stopProgress();
+  const hiresUp=document.getElementById('param-hires').value;
+  if(hiresUp){payload.enable_hr=true;payload.hr_upscaler=hiresUp;payload.hr_scale=2;payload.denoising_strength=0.4;}
+
+  if(isImg2Img){
+    payload.init_images=[editImageB64.split(',')[1]||editImageB64];
+    payload.denoising_strength=parseFloat(document.getElementById('param-denoise').value);
   }
+
+  if(currentMode==='controlnet'&&cnImageB64){
+    payload.alwayson_scripts={controlnet:{args:[{enabled:true,image:cnImageB64.split(',')[1],module:document.querySelector('.cn-tab.active').textContent.split('（')[0],model:'control_v11p_sd15_openpose'}]}};
+  }
+
+  if(selectedModelName){
+    try{await fetch(sdUrl()+'/sdapi/v1/options',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sd_model_checkpoint:selectedModelName})});}catch{}
+  }
+
+  try{
+    const r=await fetch(sdUrl()+endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const d=await r.json();
+    const elapsed=((Date.now()-genStartTime)/1000).toFixed(1);
+    if(d.images&&d.images.length){
+      showResults(d.images,prompt,d.info);
+      updateGenInfo({model:selectedModelName||'デフォルト',size:`${selectedW}×${selectedH}`,steps:payload.steps,seed:JSON.parse(d.info||'{}').seed||'?',time:elapsed+'秒'});
+      saveLocalHist(d.images[0],prompt);
+    }else throw new Error(d.error||JSON.stringify(d).slice(0,200));
+  }catch(e){
+    stopProg();setGenerating(false);
+    document.getElementById('center-empty').style.display='flex';
+    showAlert('エラー: '+e.message+'\n\nAUTOMATIC1111が起動・接続されているか確認してください。');
+    return;
+  }
+  stopProg();setGenerating(false);
 }
 
-async function generateEdit() {
-  if(!editImageB64) {alert('編集する画像をアップロードしてください');return;}
-  const userPrompt = document.getElementById('edit-prompt').value.trim() || document.getElementById('main-prompt').value.trim();
-  if(!userPrompt) {alert('編集内容を入力してください');return;}
-
-  setGenerating(true,'編集中...');
-  startProgress();
-
-  const payload = {
-    init_images: [editImageB64],
-    prompt: userPrompt + ', ' + selectedStyle.prompt,
-    negative_prompt: document.getElementById('neg-prompt').value,
-    denoising_strength: parseFloat(document.getElementById('param-denoise').value),
-    steps: parseInt(document.getElementById('param-steps').value),
-    cfg_scale: parseFloat(document.getElementById('param-cfg').value),
-    width: selectedRatio.w,
-    height: selectedRatio.h,
-    sampler_name: document.getElementById('param-sampler').value,
-    seed: -1,
-  };
-
-  try {
-    const r = await fetch(sdUrl()+'/sdapi/v1/img2img', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-    const d = await r.json();
-    if(d.images) showResults(d.images, userPrompt, true);
-    else throw new Error(d.error||JSON.stringify(d));
-  } catch(e) {
-    alert('エラー: '+e.message);
-  } finally {
-    setGenerating(false);
-    stopProgress();
-  }
+function buildPrompt(){
+  return document.getElementById('main-prompt').value.trim();
 }
 
-async function generateUpscale() {
-  if(!editImageB64) {alert('画像をアップロードしてください');return;}
-  setGenerating(true,'高解像度化中...');
-  startProgress();
-  const payload = {
-    image: editImageB64,
-    upscaling_resize: parseInt(document.getElementById('upscale-factor').value),
-    upscaler_1: document.getElementById('upscaler').value,
-  };
-  try {
-    const r = await fetch(sdUrl()+'/sdapi/v1/extra-single-image', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-    const d = await r.json();
-    if(d.image) showResults([d.image], '高解像度化');
-    else throw new Error(JSON.stringify(d));
-  } catch(e) {
-    alert('エラー: '+e.message);
-  } finally {
-    setGenerating(false);
-    stopProgress();
-  }
-}
+function showResults(images,prompt,infoStr){
+  const grid=document.getElementById('results-grid');
+  grid.innerHTML='';grid.style.display='grid';
+  document.getElementById('center-empty').style.display='none';
 
-function showResults(images, prompt, isEdit=false) {
-  const area = document.getElementById('results-area');
-  if(allResults.length===0) area.innerHTML='<div class="results-grid" id="results-grid"></div>';
-  if(!document.getElementById('results-grid')) area.innerHTML='<div class="results-grid" id="results-grid"></div>';
+  let info={};try{info=JSON.parse(infoStr||'{}');}catch{}
 
-  images.forEach(b64 => {
-    const src = 'data:image/png;base64,'+b64;
-    allResults.unshift({src,prompt,isEdit,time:new Date().toLocaleTimeString()});
-    const card = document.createElement('div');
+  images.forEach((b64,idx)=>{
+    const src='data:image/png;base64,'+b64;
+    results.unshift({src,prompt,seed:info.seed});
+    const card=document.createElement('div');
     card.className='result-card';
     card.innerHTML=`
-      <img class="result-img" src="${src}" alt="${prompt}" onload="this.classList.add('loaded')" onclick="openModal('${src}')">
-      <div class="result-info">
-        <div class="result-prompt">${prompt}</div>
+      <img class="result-img" src="${src}" alt="">
+      <div class="result-overlay">
+        <div class="result-seed">Seed: ${info.seed||'?'}</div>
         <div class="result-actions">
-          <button class="result-btn primary" onclick="sendToEditFromCard('${src}')">✎ 編集</button>
-          <button class="result-btn" onclick="downloadImg('${src}')">↓ 保存</button>
+          <div class="r-btn" onclick="downloadImg('${src}')">↓ 保存</div>
+          <div class="r-btn" onclick="sendToEdit('${src}')">✎ 編集</div>
+          <div class="r-btn" onclick="variationOf('${src}')">🔀 バリエーション</div>
+          <div class="r-btn" onclick="upscaleImg('${src}')">⬆ 高解像度</div>
         </div>
       </div>`;
-    document.getElementById('results-grid').prepend(card);
+    card.querySelector('.result-img').onclick=()=>openLightbox(src);
+    grid.appendChild(card);
+    card.style.animation='fadeIn .4s ease '+(idx*0.1)+'s both';
   });
-  saveMiniHist();
 }
 
-// ═══ UI STATE ═══
-function setGenerating(on, label='生成中...') {
+// ═══ ACTIONS ═══
+function downloadImg(src){const a=document.createElement('a');a.href=src;a.download=`aiart-${Date.now()}.png`;a.click();}
+function sendToEdit(src){
+  editImageB64=src;setMode('img2img',document.querySelectorAll('.mode-tab')[1]);
+  document.querySelectorAll('.mode-tab').forEach((t,i)=>t.classList.toggle('active',i===1));
+  const img=document.getElementById('uploaded-img');img.src=src;img.style.display='block';
+  document.getElementById('img-upload-zone').style.display='none';
+  document.getElementById('img2img-sec').style.display='block';
+  document.getElementById('img2img-controls').style.display='block';
+}
+function variationOf(src){
+  sendToEdit(src);
+  document.getElementById('param-denoise').value=0.4;
+  updateDenoise(0.4);
+  generate();
+}
+async function upscaleImg(src){
+  setGenerating(true,'高解像度化中...');
+  try{
+    const b64=src.split(',')[1];
+    const r=await fetch(sdUrl()+'/sdapi/v1/extra-single-image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image:b64,upscaling_resize:2,upscaler_1:'R-ESRGAN 4x+'})});
+    const d=await r.json();
+    if(d.image){showResults([d.image],'高解像度化',null);}
+  }catch(e){alert('エラー: '+e.message);}
+  setGenerating(false);
+}
+function cancelGen(){stopProg();setGenerating(false);document.getElementById('center-empty').style.display='flex';}
+
+// ═══ LIGHTBOX ═══
+function openLightbox(src){
+  const div=document.createElement('div');
+  div.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:500;display:flex;align-items:center;justify-content:center;cursor:pointer;';
+  div.onclick=()=>document.body.removeChild(div);
+  const img=document.createElement('img');
+  img.src=src;img.style.cssText='max-width:90vw;max-height:90vh;object-fit:contain;border-radius:12px;';
+  div.appendChild(img);
+  const bar=document.createElement('div');
+  bar.style.cssText='position:absolute;bottom:24px;display:flex;gap:10px;';
+  bar.innerHTML=`<button onclick="event.stopPropagation();downloadImg('${src}')" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.2);color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;backdrop-filter:blur(8px);">↓ 保存</button><button onclick="event.stopPropagation();sendToEdit('${src}')" style="background:var(--accent);border:none;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;">✎ 編集</button>`;
+  div.appendChild(bar);
+  document.body.appendChild(div);
+}
+
+// ═══ PROGRESS ═══
+function setGenerating(on,label='生成中...'){
   document.getElementById('gen-btn').disabled=on;
-  document.getElementById('gen-btn-text').textContent=on?'✦ '+label:'✦ 生成する';
-  document.getElementById('progress-card').style.display=on?'block':'none';
+  document.getElementById('gen-label').textContent=on?label:'生成する';
+  document.getElementById('gen-icon').textContent=on?'⏳':'✦';
+  document.getElementById('progress-area').classList.toggle('show',on);
 }
-
-function startProgress() {
+function startProg(){
   document.getElementById('prog-fill').style.width='0%';
   document.getElementById('prog-pct').textContent='0%';
-  progTimer = setInterval(async()=>{
+  progTimer=setInterval(async()=>{
     try{
-      const r=await fetch(sdUrl()+'/sdapi/v1/progress');
-      const d=await r.json();
+      const r=await fetch(sdUrl()+'/sdapi/v1/progress');const d=await r.json();
       const pct=Math.round((d.progress||0)*100);
       document.getElementById('prog-fill').style.width=pct+'%';
       document.getElementById('prog-pct').textContent=pct+'%';
-      document.getElementById('prog-label').textContent=`Step ${d.state?.sampling_step||0}/${d.state?.sampling_steps||'?'}`;
+      document.getElementById('prog-label').textContent=`ステップ ${d.state?.sampling_step||0} / ${d.state?.sampling_steps||'?'}`;
     }catch{}
   },800);
 }
+function stopProg(){clearInterval(progTimer);document.getElementById('prog-fill').style.width='100%';document.getElementById('prog-pct').textContent='100%';}
 
-function stopProgress() {
-  clearInterval(progTimer);
-  document.getElementById('prog-fill').style.width='100%';
-  document.getElementById('prog-pct').textContent='100%';
+// ═══ GEN INFO ═══
+function updateGenInfo(info){
+  document.getElementById('gen-info').innerHTML=`
+    <div>モデル: <span style="color:var(--text);">${info.model.split('/').pop().split('.')[0]||'—'}</span></div>
+    <div>サイズ: <span style="color:var(--text);">${info.size}</span></div>
+    <div>ステップ: <span style="color:var(--text);">${info.steps}</span></div>
+    <div>シード: <span style="color:var(--text);font-family:monospace;">${info.seed}</span></div>
+    <div>生成時間: <span style="color:var(--text);">${info.time}</span></div>`;
 }
 
-// ═══ EDIT PANEL ═══
-function loadEditImage(inp) {
-  const f=inp.files[0];if(!f)return;
-  const reader=new FileReader();
-  reader.onload=ev=>{
-    editImageB64=ev.target.result;
-    const prev=document.getElementById('upload-preview');
-    prev.src=ev.target.result;prev.style.display='block';
-    document.getElementById('upload-zone').style.display='none';
-    document.getElementById('edit-controls').style.display='block';
-  };
-  reader.readAsDataURL(f);
+// ═══ HISTORY ═══
+function saveLocalHist(b64,prompt){
+  try{
+    const h=JSON.parse(localStorage.getItem('aiart-hist2')||'[]');
+    h.unshift({src:'data:image/png;base64,'+b64,prompt,time:Date.now()});
+    if(h.length>18)h.pop();
+    localStorage.setItem('aiart-hist2',JSON.stringify(h));
+    loadLocalHist();
+  }catch{}
+}
+function loadLocalHist(){
+  try{
+    const h=JSON.parse(localStorage.getItem('aiart-hist2')||'[]');
+    const grid=document.getElementById('hist-grid');
+    const cells=Array(6).fill(null).map((_,i)=>h[i]||null);
+    grid.innerHTML=cells.map((item,i)=>item
+      ?`<div class="hist-thumb" onclick="openLightbox('${item.src}')" title="${item.prompt}"><img src="${item.src}" loading="lazy"></div>`
+      :`<div class="hist-thumb"><div class="hist-thumb-empty">🖼</div></div>`
+    ).join('');
+  }catch{}
 }
 
-function setEditMode(btn) {
-  document.querySelectorAll('.edit-tab').forEach(t=>t.classList.remove('active'));
-  btn.classList.add('active');
-  editMode=btn.dataset.mode;
-  document.getElementById('edit-img2img').style.display=editMode==='img2img'?'block':'none';
-  document.getElementById('edit-upscale').style.display=editMode==='upscale'?'block':'none';
-}
-
-const uploadZone=document.getElementById('upload-zone');
-uploadZone.addEventListener('dragover',e=>{e.preventDefault();uploadZone.classList.add('drag');});
-uploadZone.addEventListener('dragleave',()=>uploadZone.classList.remove('drag'));
-uploadZone.addEventListener('drop',e=>{e.preventDefault();uploadZone.classList.remove('drag');const f=e.dataTransfer.files[0];if(f?.type.startsWith('image/')){const dt=new DataTransfer();dt.items.add(f);document.getElementById('img-file').files=dt.files;loadEditImage({files:dt.files});}});
-
-// ═══ MODAL ═══
-function openModal(src) {
-  modalImgSrc=src;
-  document.getElementById('modal-img').src=src;
-  document.getElementById('modal').classList.add('show');
-}
-function closeModal(){document.getElementById('modal').classList.remove('show');}
-function downloadModalImg(){downloadImg(modalImgSrc);}
-function sendToEdit(){
-  if(!modalImgSrc)return;
-  editImageB64=modalImgSrc;
-  const prev=document.getElementById('upload-preview');
-  prev.src=modalImgSrc;prev.style.display='block';
-  document.getElementById('upload-zone').style.display='none';
-  document.getElementById('edit-controls').style.display='block';
-  closeModal();
-}
-function sendToEditFromCard(src){
-  editImageB64=src;
-  const prev=document.getElementById('upload-preview');
-  prev.src=src;prev.style.display='block';
-  document.getElementById('upload-zone').style.display='none';
-  document.getElementById('edit-controls').style.display='block';
-  document.getElementById('edit-prompt').focus();
-}
-
-// ═══ UTILS ═══
-function downloadImg(src) {
-  const a=document.createElement('a');a.href=src;a.download=`aiart-${Date.now()}.png`;a.click();
-}
-function clearResults(){allResults=[];document.getElementById('results-area').innerHTML='<div class="empty-state"><div class="icon">🎨</div><p>プロンプトを入力して生成してください</p></div>';}
-
-async function checkConn() {
+// ═══ CONN ═══
+async function checkConn(){
   setStatus(false,'確認中...');
-  try{const r=await fetch(sdUrl()+'/sdapi/v1/options');r.ok?setStatus(true,'接続済み'):setStatus(false,'エラー');}
-  catch{setStatus(false,'接続失敗');}
+  try{
+    const r=await fetch(sdUrl()+'/sdapi/v1/options');
+    if(r.ok){setStatus(true,'接続済み');fetchModels();}
+    else setStatus(false,'エラー '+r.status);
+  }catch{setStatus(false,'接続失敗');}
 }
 function setStatus(on,t){document.getElementById('sdot').className='status-dot'+(on?' on':'');document.getElementById('stext').textContent=t;}
 const sdUrl=()=>document.getElementById('sd-url').value.replace(/\/$/,'');
 
-// Mini history
-function saveMiniHist(){
-  try{const items=allResults.slice(0,12).map(r=>({src:r.src,prompt:r.prompt}));localStorage.setItem('aiart-hist',JSON.stringify(items));loadMiniHist();}catch{}
-}
-function loadMiniHist(){
-  try{
-    const items=JSON.parse(localStorage.getItem('aiart-hist')||'[]');
-    const el=document.getElementById('mini-hist');
-    if(!items.length){el.innerHTML='<div style="font-size:11px;color:var(--muted);">まだ生成していません</div>';return;}
-    el.innerHTML=items.map(item=>`
-      <div title="${item.prompt}" onclick="openModal('${item.src}')" style="width:52px;height:52px;border-radius:8px;overflow:hidden;cursor:pointer;border:2px solid var(--border);transition:border-color .15s;" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--border)'">
-        <img src="${item.src}" style="width:100%;height:100%;object-fit:cover;">
-      </div>`).join('');
-  }catch{}
-}
+function showAlert(msg){alert(msg);}
 
 init();
 </script>
