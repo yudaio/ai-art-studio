@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIアート Studio</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{--bg:#f5f5f7;--white:#fff;--card:#fff;--border:#e5e5e7;--text:#1d1d1f;--muted:#6e6e73;--accent:#6366f1;--accent2:#4f46e5;--green:#34c759;--red:#ff3b30;--orange:#ff9500;--shadow:0 2px 12px rgba(0,0,0,.08);}
+body{background:var(--bg);color:var(--text);font-family:'Noto Sans JP',sans-serif;min-height:100vh;}
+@keyframes spin{to{transform:rotate(360deg);}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:none;}}
+@keyframes shimmer{0%{background-position:-200% 0;}100%{background-position:200% 0;}}
+
+/* ── Header ── */
+header{background:rgba(255,255,255,.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:.85rem 1.5rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.logo{font-size:1.25rem;font-weight:700;background:linear-gradient(135deg,#6366f1,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.conn-area{display:flex;align-items:center;gap:.6rem;}
+.conn-input{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-size:12px;color:var(--text);outline:none;width:180px;}
+.conn-input:focus{border-color:var(--accent);}
+.conn-btn{background:var(--accent);color:#fff;border:none;padding:6px 14px;border-radius:8px;font-size:12px;cursor:pointer;transition:opacity .15s;}
+.conn-btn:hover{opacity:.85;}
+.status-dot{width:8px;height:8px;border-radius:50%;background:#ccc;flex-shrink:0;}
+.status-dot.on{background:var(--green);}
+
+/* ── Layout ── */
+.app{display:grid;grid-template-columns:260px 1fr 280px;gap:1rem;padding:1rem;max-width:1400px;margin:0 auto;}
+
+/* ── Sidebar ── */
+.sidebar{display:flex;flex-direction:column;gap:.75rem;}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:1rem;box-shadow:var(--shadow);}
+.card-title{font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;margin-bottom:.75rem;}
+
+/* ── Style Gallery ── */
+.style-scroll{display:flex;flex-direction:column;gap:.4rem;max-height:320px;overflow-y:auto;}
+.style-item{display:flex;align-items:center;gap:.6rem;padding:.5rem .6rem;border-radius:10px;cursor:pointer;border:2px solid transparent;transition:all .15s;}
+.style-item:hover{background:var(--bg);}
+.style-item.active{border-color:var(--accent);background:rgba(99,102,241,.06);}
+.style-thumb{width:40px;height:40px;border-radius:8px;object-fit:cover;flex-shrink:0;background:linear-gradient(135deg,var(--c1,#6366f1),var(--c2,#8b5cf6));}
+.style-name{font-size:13px;font-weight:500;}
+.style-desc{font-size:11px;color:var(--muted);}
+
+/* ── Aspect Ratio ── */
+.ratio-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.4rem;}
+.ratio-btn{padding:.5rem;border-radius:8px;border:1.5px solid var(--border);background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:.25rem;font-size:10px;color:var(--muted);transition:all .15s;}
+.ratio-btn:hover{border-color:var(--accent);color:var(--accent);}
+.ratio-btn.active{border-color:var(--accent);background:rgba(99,102,241,.08);color:var(--accent);font-weight:600;}
+.ratio-icon{border:2px solid currentColor;border-radius:2px;}
+
+/* ── Sliders ── */
+.param-row{margin-bottom:.6rem;}
+.param-label{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:.3rem;}
+.param-label span{color:var(--accent);font-weight:600;}
+input[type=range]{width:100%;accent-color:var(--accent);}
+select{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:13px;color:var(--text);outline:none;font-family:'Noto Sans JP',sans-serif;}
+select:focus{border-color:var(--accent);}
+textarea,input[type=text]{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--text);outline:none;font-family:'Noto Sans JP',sans-serif;transition:border-color .15s;}
+textarea:focus,input[type=text]:focus{border-color:var(--accent);}
+textarea{resize:none;}
+::placeholder{color:#aaa;}
+
+/* ── Center ── */
+.center{display:flex;flex-direction:column;gap:.75rem;}
+
+/* ── Prompt Area ── */
+.prompt-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:1rem;box-shadow:var(--shadow);}
+.prompt-tabs{display:flex;gap:.3rem;margin-bottom:.75rem;}
+.prompt-tab{padding:5px 14px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:1.5px solid var(--border);background:transparent;color:var(--muted);transition:all .15s;}
+.prompt-tab.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+.prompt-wrap{position:relative;}
+.prompt-textarea{width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:12px;padding:.85rem 1rem;font-size:14px;color:var(--text);outline:none;font-family:'Noto Sans JP',sans-serif;resize:none;line-height:1.6;transition:border-color .15s;}
+.prompt-textarea:focus{border-color:var(--accent);}
+.prompt-actions{display:flex;align-items:center;gap:.5rem;margin-top:.6rem;}
+.btn-generate{flex:1;background:linear-gradient(135deg,var(--accent),#8b5cf6);color:#fff;border:none;padding:.85rem;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;transition:opacity .15s;display:flex;align-items:center;justify-content:center;gap:.4rem;}
+.btn-generate:hover{opacity:.9;}
+.btn-generate:disabled{opacity:.4;cursor:not-allowed;}
+.btn-icon{width:40px;height:40px;border-radius:10px;border:1.5px solid var(--border);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:all .15s;}
+.btn-icon:hover{border-color:var(--accent);}
+
+/* ── Results Grid ── */
+.results-header{display:flex;align-items:center;justify-content:space-between;}
+.results-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:.75rem;}
+.result-card{border-radius:14px;overflow:hidden;background:var(--card);border:1px solid var(--border);box-shadow:var(--shadow);cursor:pointer;transition:transform .2s,box-shadow .2s;animation:fadeUp .4s ease;}
+.result-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.12);}
+.result-img{width:100%;aspect-ratio:1;object-fit:cover;display:block;background:linear-gradient(135deg,#f0f0f5,#e8e8f0);background-size:200% 200%;animation:shimmer 1.5s infinite;}
+.result-img.loaded{animation:none;}
+.result-info{padding:.6rem .75rem;border-top:1px solid var(--border);}
+.result-prompt{font-size:11px;color:var(--muted);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.result-actions{display:flex;gap:.4rem;margin-top:.45rem;}
+.result-btn{flex:1;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:transparent;font-size:10px;cursor:pointer;color:var(--muted);transition:all .15s;font-family:'Noto Sans JP',sans-serif;}
+.result-btn:hover{border-color:var(--accent);color:var(--accent);}
+.result-btn.primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+.result-btn.primary:hover{opacity:.85;color:#fff;}
+
+/* ── Progress ── */
+.progress-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:1.25rem;box-shadow:var(--shadow);text-align:center;display:none;}
+.progress-spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto .75rem;}
+.progress-bar-bg{background:var(--bg);border-radius:4px;height:4px;overflow:hidden;margin:.6rem 0;}
+.progress-bar-fill{height:100%;background:linear-gradient(90deg,var(--accent),#8b5cf6);border-radius:4px;transition:width .4s;width:0%;}
+.progress-label{font-size:13px;color:var(--muted);}
+.progress-pct{font-size:1.5rem;font-weight:700;color:var(--accent);margin:.25rem 0;}
+
+/* ── Right Panel: Image Edit ── */
+.edit-panel{display:flex;flex-direction:column;gap:.75rem;}
+.upload-zone{border:2px dashed var(--border);border-radius:12px;padding:1.5rem;text-align:center;cursor:pointer;transition:all .15s;background:var(--bg);}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--accent);background:rgba(99,102,241,.04);}
+.upload-zone p{font-size:12px;color:var(--muted);margin-top:.4rem;}
+.upload-preview{width:100%;border-radius:10px;display:none;aspect-ratio:1;object-fit:cover;cursor:pointer;}
+
+/* ── Edit Mode ── */
+.edit-mode-tabs{display:flex;gap:.3rem;margin-bottom:.6rem;}
+.edit-tab{flex:1;padding:5px;border-radius:8px;font-size:11px;font-weight:500;cursor:pointer;border:1.5px solid var(--border);background:transparent;color:var(--muted);text-align:center;transition:all .15s;}
+.edit-tab.active{background:var(--orange);color:#fff;border-color:var(--orange);}
+
+/* Strength indicator */
+.strength-indicator{display:flex;gap:3px;margin:.3rem 0;}
+.strength-bar{flex:1;height:3px;border-radius:2px;background:var(--border);}
+.strength-bar.on{background:var(--orange);}
+
+/* ── Tag pills ── */
+.tag-wrap{display:flex;flex-wrap:wrap;gap:.3rem;margin-bottom:.5rem;}
+.tag{padding:3px 10px;border-radius:20px;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2);color:var(--accent);font-size:11px;cursor:pointer;transition:all .15s;}
+.tag:hover{background:var(--accent);color:#fff;}
+
+/* ── Empty state ── */
+.empty-state{text-align:center;padding:3rem 1rem;color:var(--muted);}
+.empty-state .icon{font-size:3rem;margin-bottom:.5rem;}
+.empty-state p{font-size:14px;}
+
+/* ── Modal ── */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+.modal-bg.show{display:flex;}
+.modal{background:#fff;border-radius:20px;overflow:hidden;max-width:90vw;max-height:90vh;box-shadow:0 20px 60px rgba(0,0,0,.2);animation:fadeUp .25s ease;}
+.modal img,.modal video{max-width:80vw;max-height:80vh;object-fit:contain;display:block;}
+.modal-actions{padding:.75rem 1rem;display:flex;gap:.5rem;border-top:1px solid var(--border);}
+
+@media(max-width:900px){.app{grid-template-columns:1fr;}.edit-panel{order:-1;}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">✦ AIアート</div>
+  <div class="conn-area">
+    <input class="conn-input" type="text" id="sd-url" value="http://127.0.0.1:7860" placeholder="AUTOMATIC1111 URL">
+    <button class="conn-btn" onclick="checkConn()">接続</button>
+    <div class="status-dot" id="sdot" title="接続状態"></div>
+    <span id="stext" style="font-size:12px;color:var(--muted);">未接続</span>
+  </div>
+</header>
+
+<div class="app">
+
+<!-- ═══ LEFT SIDEBAR ═══ -->
+<div class="sidebar">
+
+  <!-- Style -->
+  <div class="card">
+    <div class="card-title">スタイル</div>
+    <div class="style-scroll" id="style-list">
+      <!-- populated by JS -->
+    </div>
+  </div>
+
+  <!-- Aspect Ratio -->
+  <div class="card">
+    <div class="card-title">サイズ・比率</div>
+    <div class="ratio-grid" id="ratio-grid">
+      <!-- populated by JS -->
+    </div>
+  </div>
+
+  <!-- Settings -->
+  <div class="card">
+    <div class="card-title">詳細設定</div>
+    <div class="param-row">
+      <div class="param-label">クオリティ <span id="steps-v">28</span></div>
+      <input type="range" min="10" max="50" value="28" id="param-steps" oninput="document.getElementById('steps-v').textContent=this.value">
+    </div>
+    <div class="param-row">
+      <div class="param-label">プロンプト強度 <span id="cfg-v">7</span></div>
+      <input type="range" min="1" max="15" step=".5" value="7" id="param-cfg" oninput="document.getElementById('cfg-v').textContent=parseFloat(this.value).toFixed(1)">
+    </div>
+    <div class="param-row">
+      <div class="param-label">生成枚数</div>
+      <select id="param-batch">
+        <option value="1">1枚</option>
+        <option value="2" selected>2枚</option>
+        <option value="4">4枚</option>
+      </select>
+    </div>
+    <div class="param-row">
+      <div class="param-label">サンプラー</div>
+      <select id="param-sampler">
+        <option>DPM++ 2M Karras</option>
+        <option>Euler a</option>
+        <option>DDIM</option>
+      </select>
+    </div>
+    <div class="param-row">
+      <div class="param-label" style="margin-bottom:.3rem;">ネガティブ</div>
+      <input type="text" id="neg-prompt" value="blurry, lowres, bad anatomy, ugly, watermark" placeholder="除外したい要素">
+    </div>
+  </div>
+
+</div><!-- /sidebar -->
+
+<!-- ═══ CENTER ═══ -->
+<div class="center">
+
+  <!-- Prompt -->
+  <div class="prompt-card">
+    <div class="prompt-tabs">
+      <button class="prompt-tab active" onclick="setPromptMode('create')">✦ 新規作成</button>
+      <button class="prompt-tab" onclick="setPromptMode('edit')">✎ 画像を編集</button>
+    </div>
+
+    <!-- Quick tags -->
+    <div class="tag-wrap" id="quick-tags"></div>
+
+    <div class="prompt-wrap">
+      <textarea class="prompt-textarea" id="main-prompt" rows="3" placeholder="作りたいものを日本語や英語で自由に入力してください。例：笑顔の女性、朝の光、映画的な雰囲気"></textarea>
+    </div>
+    <div class="prompt-actions">
+      <button class="btn-icon" onclick="clearPrompt()" title="クリア">🗑</button>
+      <button class="btn-icon" onclick="randomPrompt()" title="ランダム">🎲</button>
+      <button class="btn-icon" onclick="translatePrompt()" title="翻訳補助">🌐</button>
+      <button class="btn-generate" id="gen-btn" onclick="generate()">
+        <span id="gen-btn-text">✦ 生成する</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Progress -->
+  <div class="progress-card" id="progress-card">
+    <div class="progress-spinner"></div>
+    <div class="progress-pct" id="prog-pct">0%</div>
+    <div class="progress-bar-bg"><div class="progress-bar-fill" id="prog-fill"></div></div>
+    <div class="progress-label" id="prog-label">生成準備中...</div>
+  </div>
+
+  <!-- Results -->
+  <div class="card">
+    <div class="results-header" style="margin-bottom:.75rem;">
+      <span style="font-size:13px;font-weight:600;">生成結果</span>
+      <button onclick="clearResults()" style="font-size:12px;color:var(--muted);background:none;border:none;cursor:pointer;">クリア</button>
+    </div>
+    <div id="results-area">
+      <div class="empty-state">
+        <div class="icon">🎨</div>
+        <p>プロンプトを入力して生成してください</p>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /center -->
+
+<!-- ═══ RIGHT: EDIT PANEL ═══ -->
+<div class="edit-panel">
+
+  <div class="card">
+    <div class="card-title">📸 画像で編集</div>
+
+    <div style="margin-bottom:.6rem;">
+      <div class="upload-zone" id="upload-zone" onclick="document.getElementById('img-file').click()">
+        <div style="font-size:2rem;">📁</div>
+        <p>クリックまたはドロップで<br>画像をアップロード</p>
+      </div>
+      <img id="upload-preview" class="upload-preview" onclick="document.getElementById('img-file').click()">
+      <input type="file" id="img-file" accept="image/*" style="display:none" onchange="loadEditImage(this)">
+    </div>
+
+    <div id="edit-controls" style="display:none;">
+      <div class="edit-mode-tabs">
+        <button class="edit-tab active" data-mode="img2img" onclick="setEditMode(this)">画像変換</button>
+        <button class="edit-tab" data-mode="inpaint" onclick="setEditMode(this)">部分編集</button>
+        <button class="edit-tab" data-mode="upscale" onclick="setEditMode(this)">高解像度化</button>
+      </div>
+
+      <div id="edit-img2img">
+        <div class="param-row">
+          <div class="param-label">変化の強さ <span id="denoise-v">0.55</span></div>
+          <input type="range" min="0.1" max="0.95" step="0.05" value="0.55" id="param-denoise" oninput="updateDenoiseVis(this.value)">
+          <div class="strength-indicator" id="strength-bars"></div>
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:2px;"><span>元画像に近い</span><span>大きく変化</span></div>
+        </div>
+
+        <div class="param-row">
+          <div class="param-label" style="margin-bottom:.35rem;">編集プロンプト</div>
+          <textarea id="edit-prompt" rows="2" placeholder="変更したい内容を入力&#10;例：笑顔にして、髪を赤くして"></textarea>
+        </div>
+
+        <!-- Quick edit tags -->
+        <div class="card-title" style="margin:.5rem 0 .3rem;">クイック変更</div>
+        <div class="tag-wrap" id="edit-tags"></div>
+
+        <button onclick="generateEdit()" style="width:100%;padding:.75rem;background:linear-gradient(135deg,#ff9500,#ff6b35);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;margin-top:.4rem;">✎ 変更を適用</button>
+      </div>
+
+      <div id="edit-upscale" style="display:none;">
+        <div class="param-row">
+          <div class="param-label">拡大倍率</div>
+          <select id="upscale-factor"><option value="2">2x</option><option value="4">4x</option></select>
+        </div>
+        <div class="param-row">
+          <div class="param-label">アップスケーラー</div>
+          <select id="upscaler"><option>R-ESRGAN 4x+</option><option>ESRGAN_4x</option><option>Lanczos</option></select>
+        </div>
+        <button onclick="generateUpscale()" style="width:100%;padding:.75rem;background:linear-gradient(135deg,#34c759,#30b050);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;">↑ 高解像度化</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- History -->
+  <div class="card">
+    <div class="card-title">最近の生成</div>
+    <div id="mini-hist" style="display:flex;flex-wrap:wrap;gap:.4rem;">
+      <div style="font-size:11px;color:var(--muted);">まだ生成していません</div>
+    </div>
+  </div>
+
+</div><!-- /edit-panel -->
+</div><!-- /app -->
+
+<!-- Modal -->
+<div class="modal-bg" id="modal" onclick="closeModal()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <img id="modal-img" src="" alt="">
+    <div class="modal-actions">
+      <button onclick="downloadModalImg()" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);background:transparent;cursor:pointer;font-size:13px;">↓ 保存</button>
+      <button onclick="sendToEdit()" style="flex:1;padding:8px;border-radius:8px;background:var(--orange);color:#fff;border:none;cursor:pointer;font-size:13px;font-weight:600;">✎ 編集に使用</button>
+      <button onclick="closeModal()" style="padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:transparent;cursor:pointer;font-size:13px;">✕</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══ DATA ═══
+const STYLES = [
+  {id:'realistic',name:'リアル写真',desc:'写真・実写風',colors:['#1a1a2e','#16213e'],prompt:'photorealistic, detailed photography, professional photo, 8k, sharp focus'},
+  {id:'anime',name:'アニメ',desc:'日本アニメ風',colors:['#ff6b9d','#c44569'],prompt:'anime style, vibrant colors, detailed illustration, studio quality'},
+  {id:'portrait',name:'ポートレート',desc:'人物・顔写真',colors:['#f8b500','#e44d26'],prompt:'portrait photography, beautiful lighting, shallow depth of field, professional'},
+  {id:'landscape',name:'風景',desc:'自然・景色',colors:['#56ab2f','#a8e063'],prompt:'landscape photography, scenic view, golden hour, cinematic, stunning'},
+  {id:'fantasy',name:'ファンタジー',desc:'魔法・異世界',colors:['#8e2de2','#4a00e0'],prompt:'fantasy art, magical atmosphere, epic scene, detailed concept art'},
+  {id:'cyberpunk',name:'サイバーパンク',desc:'未来都市',colors:['#00f5ff','#0a0a2e'],prompt:'cyberpunk style, neon lights, futuristic city, rain, detailed, cinematic'},
+  {id:'oil',name:'油絵',desc:'クラシック絵画',colors:['#b8860b','#8b4513'],prompt:'oil painting, classical art style, masterpiece, rich textures, museum quality'},
+  {id:'watercolor',name:'水彩',desc:'透明感のある絵',colors:['#74ebd5','#acb6e5'],prompt:'watercolor painting, soft colors, artistic, beautiful, delicate'},
+  {id:'3d',name:'3Dアート',desc:'CGレンダリング',colors:['#667eea','#764ba2'],prompt:'3D render, octane render, high quality, cinematic lighting, detailed'},
+  {id:'minimal',name:'ミニマル',desc:'シンプル・クリーン',colors:['#f5f5f5','#e0e0e0'],prompt:'minimalist design, clean, simple, elegant, modern'},
+];
+
+const RATIOS = [
+  {id:'1:1',w:512,h:512,label:'1:1',desc:'正方形',icon:{w:24,h:24}},
+  {id:'4:3',w:680,h:512,label:'4:3',desc:'横長',icon:{w:28,h:21}},
+  {id:'3:4',w:512,h:680,label:'3:4',desc:'縦長',icon:{w:21,h:28}},
+  {id:'16:9',w:768,h:432,label:'16:9',desc:'ワイド',icon:{w:32,h:18}},
+  {id:'9:16',w:432,h:768,label:'9:16',desc:'縦ワイド',icon:{w:18,h:32}},
+  {id:'2:3',w:512,h:768,label:'2:3',desc:'ポートレート',icon:{w:20,h:30}},
+];
+
+const QUICK_TAGS = ['笑顔','青い空','夜景','花畑','猫','ドラゴン','城','宇宙','海辺','森','カフェ','雪景色'];
+const EDIT_TAGS = ['笑顔にして','髪を赤くして','背景を変えて','服を変えて','照明を暖かく','モノクロにして','若くして','怒った表情に','驚いた顔に','目を閉じて'];
+const RANDOM_PROMPTS = [
+  '朝の光が差し込む森の中の小さなカフェ、蒸気が立ち上るコーヒー',
+  '夜の東京、ネオンが光る雨の路地、孤独な傘の人物',
+  '銀河を背景に浮かぶ古城、魔法の光が漏れる窓',
+  '満開の桜の下で笑う女性、柔らかい春の光',
+  '深海の神秘的な光、巨大なクジラと小さな潜水艇',
+];
+
+// State
+let selectedStyle = STYLES[0];
+let selectedRatio = RATIOS[0];
+let editMode = 'img2img';
+let editImageB64 = null;
+let promptMode = 'create';
+let allResults = [];
+let progTimer = null;
+let modalImgSrc = null;
+
+// ═══ INIT ═══
+function init() {
+  buildStyleList();
+  buildRatioGrid();
+  buildQuickTags();
+  buildEditTags();
+  buildStrengthBars();
+  loadMiniHist();
+}
+
+function buildStyleList() {
+  document.getElementById('style-list').innerHTML = STYLES.map(s => `
+    <div class="style-item ${s.id===selectedStyle.id?'active':''}" onclick="selectStyle('${s.id}')">
+      <div class="style-thumb" style="--c1:${s.colors[0]};--c2:${s.colors[1]};"></div>
+      <div><div class="style-name">${s.name}</div><div class="style-desc">${s.desc}</div></div>
+    </div>`).join('');
+}
+
+function selectStyle(id) {
+  selectedStyle = STYLES.find(s=>s.id===id);
+  buildStyleList();
+}
+
+function buildRatioGrid() {
+  document.getElementById('ratio-grid').innerHTML = RATIOS.map(r => `
+    <button class="ratio-btn ${r.id===selectedRatio.id?'active':''}" onclick="selectRatio('${r.id}')">
+      <div class="ratio-icon" style="width:${r.icon.w}px;height:${r.icon.h}px;"></div>
+      <div>${r.label}</div>
+      <div style="font-size:9px;">${r.desc}</div>
+    </button>`).join('');
+}
+
+function selectRatio(id) {
+  selectedRatio = RATIOS.find(r=>r.id===id);
+  buildRatioGrid();
+}
+
+function buildQuickTags() {
+  document.getElementById('quick-tags').innerHTML = QUICK_TAGS.map(t =>
+    `<span class="tag" onclick="appendTag('${t}')">${t}</span>`).join('');
+}
+
+function buildEditTags() {
+  document.getElementById('edit-tags').innerHTML = EDIT_TAGS.map(t =>
+    `<span class="tag" style="background:rgba(255,149,0,.08);border-color:rgba(255,149,0,.3);color:var(--orange);" onclick="appendEditTag('${t}')">${t}</span>`).join('');
+}
+
+function buildStrengthBars() {
+  const n=10;
+  document.getElementById('strength-bars').innerHTML = Array(n).fill(0).map((_,i)=>
+    `<div class="strength-bar ${i<5?'on':''}" id="sb-${i}"></div>`).join('');
+}
+
+function updateDenoiseVis(val) {
+  document.getElementById('denoise-v').textContent = parseFloat(val).toFixed(2);
+  const n=10, on=Math.round(val*n);
+  for(let i=0;i<n;i++) {
+    const b=document.getElementById('sb-'+i);
+    b.style.background = i<on ? 'var(--orange)' : 'var(--border)';
+  }
+}
+
+function appendTag(t) {
+  const el=document.getElementById('main-prompt');
+  el.value=(el.value?el.value+', ':'')+t;el.focus();
+}
+function appendEditTag(t) {
+  const el=document.getElementById('edit-prompt');
+  el.value=(el.value?el.value+'、':'')+t;el.focus();
+}
+function clearPrompt(){document.getElementById('main-prompt').value='';}
+function randomPrompt(){document.getElementById('main-prompt').value=RANDOM_PROMPTS[Math.floor(Math.random()*RANDOM_PROMPTS.length)];}
+
+async function translatePrompt() {
+  const text = document.getElementById('main-prompt').value.trim();
+  if (!text) return;
+  // Simple heuristic: if contains Japanese, it's already good; just append style
+  document.getElementById('main-prompt').value = text;
+  alert('ヒント: 日本語のまま入力してもAUTOMATIC1111が自動翻訳します。スタイルは自動付加されます。');
+}
+
+function setPromptMode(mode) {
+  promptMode = mode;
+  document.querySelectorAll('.prompt-tab').forEach((t,i)=>t.classList.toggle('active',['create','edit'][i]===mode));
+  if(mode==='edit') {
+    document.getElementById('main-prompt').placeholder='編集内容を入力してください。例：笑顔にして、背景を夕焼けにして';
+    document.getElementById('upload-zone').style.border='2px solid var(--orange)';
+  } else {
+    document.getElementById('main-prompt').placeholder='作りたいものを日本語や英語で自由に入力してください';
+    document.getElementById('upload-zone').style.border='';
+  }
+}
+
+// ═══ GENERATE ═══
+function buildPrompt() {
+  const user = document.getElementById('main-prompt').value.trim();
+  const style = selectedStyle.prompt;
+  return [user, style].filter(Boolean).join(', ');
+}
+
+async function generate() {
+  if(promptMode==='edit' && editImageB64) {generateEdit();return;}
+  const prompt = buildPrompt();
+  if(!prompt.replace(/,\s*/g,'').trim()) {alert('プロンプトを入力してください');return;}
+
+  setGenerating(true);
+  startProgress();
+
+  const payload = {
+    prompt,
+    negative_prompt: document.getElementById('neg-prompt').value,
+    steps: parseInt(document.getElementById('param-steps').value),
+    cfg_scale: parseFloat(document.getElementById('param-cfg').value),
+    width: selectedRatio.w,
+    height: selectedRatio.h,
+    batch_size: parseInt(document.getElementById('param-batch').value),
+    sampler_name: document.getElementById('param-sampler').value,
+    seed: -1,
+  };
+
+  try {
+    const r = await fetch(sdUrl()+'/sdapi/v1/txt2img', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const d = await r.json();
+    if(d.images) showResults(d.images, prompt);
+    else throw new Error(d.error||JSON.stringify(d));
+  } catch(e) {
+    alert('エラー: '+e.message+'\n\nAUTOMATIC1111が --api フラグ付きで起動しているか確認してください。');
+  } finally {
+    setGenerating(false);
+    stopProgress();
+  }
+}
+
+async function generateEdit() {
+  if(!editImageB64) {alert('編集する画像をアップロードしてください');return;}
+  const userPrompt = document.getElementById('edit-prompt').value.trim() || document.getElementById('main-prompt').value.trim();
+  if(!userPrompt) {alert('編集内容を入力してください');return;}
+
+  setGenerating(true,'編集中...');
+  startProgress();
+
+  const payload = {
+    init_images: [editImageB64],
+    prompt: userPrompt + ', ' + selectedStyle.prompt,
+    negative_prompt: document.getElementById('neg-prompt').value,
+    denoising_strength: parseFloat(document.getElementById('param-denoise').value),
+    steps: parseInt(document.getElementById('param-steps').value),
+    cfg_scale: parseFloat(document.getElementById('param-cfg').value),
+    width: selectedRatio.w,
+    height: selectedRatio.h,
+    sampler_name: document.getElementById('param-sampler').value,
+    seed: -1,
+  };
+
+  try {
+    const r = await fetch(sdUrl()+'/sdapi/v1/img2img', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const d = await r.json();
+    if(d.images) showResults(d.images, userPrompt, true);
+    else throw new Error(d.error||JSON.stringify(d));
+  } catch(e) {
+    alert('エラー: '+e.message);
+  } finally {
+    setGenerating(false);
+    stopProgress();
+  }
+}
+
+async function generateUpscale() {
+  if(!editImageB64) {alert('画像をアップロードしてください');return;}
+  setGenerating(true,'高解像度化中...');
+  startProgress();
+  const payload = {
+    image: editImageB64,
+    upscaling_resize: parseInt(document.getElementById('upscale-factor').value),
+    upscaler_1: document.getElementById('upscaler').value,
+  };
+  try {
+    const r = await fetch(sdUrl()+'/sdapi/v1/extra-single-image', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const d = await r.json();
+    if(d.image) showResults([d.image], '高解像度化');
+    else throw new Error(JSON.stringify(d));
+  } catch(e) {
+    alert('エラー: '+e.message);
+  } finally {
+    setGenerating(false);
+    stopProgress();
+  }
+}
+
+function showResults(images, prompt, isEdit=false) {
+  const area = document.getElementById('results-area');
+  if(allResults.length===0) area.innerHTML='<div class="results-grid" id="results-grid"></div>';
+  if(!document.getElementById('results-grid')) area.innerHTML='<div class="results-grid" id="results-grid"></div>';
+
+  images.forEach(b64 => {
+    const src = 'data:image/png;base64,'+b64;
+    allResults.unshift({src,prompt,isEdit,time:new Date().toLocaleTimeString()});
+    const card = document.createElement('div');
+    card.className='result-card';
+    card.innerHTML=`
+      <img class="result-img" src="${src}" alt="${prompt}" onload="this.classList.add('loaded')" onclick="openModal('${src}')">
+      <div class="result-info">
+        <div class="result-prompt">${prompt}</div>
+        <div class="result-actions">
+          <button class="result-btn primary" onclick="sendToEditFromCard('${src}')">✎ 編集</button>
+          <button class="result-btn" onclick="downloadImg('${src}')">↓ 保存</button>
+        </div>
+      </div>`;
+    document.getElementById('results-grid').prepend(card);
+  });
+  saveMiniHist();
+}
+
+// ═══ UI STATE ═══
+function setGenerating(on, label='生成中...') {
+  document.getElementById('gen-btn').disabled=on;
+  document.getElementById('gen-btn-text').textContent=on?'✦ '+label:'✦ 生成する';
+  document.getElementById('progress-card').style.display=on?'block':'none';
+}
+
+function startProgress() {
+  document.getElementById('prog-fill').style.width='0%';
+  document.getElementById('prog-pct').textContent='0%';
+  progTimer = setInterval(async()=>{
+    try{
+      const r=await fetch(sdUrl()+'/sdapi/v1/progress');
+      const d=await r.json();
+      const pct=Math.round((d.progress||0)*100);
+      document.getElementById('prog-fill').style.width=pct+'%';
+      document.getElementById('prog-pct').textContent=pct+'%';
+      document.getElementById('prog-label').textContent=`Step ${d.state?.sampling_step||0}/${d.state?.sampling_steps||'?'}`;
+    }catch{}
+  },800);
+}
+
+function stopProgress() {
+  clearInterval(progTimer);
+  document.getElementById('prog-fill').style.width='100%';
+  document.getElementById('prog-pct').textContent='100%';
+}
+
+// ═══ EDIT PANEL ═══
+function loadEditImage(inp) {
+  const f=inp.files[0];if(!f)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    editImageB64=ev.target.result;
+    const prev=document.getElementById('upload-preview');
+    prev.src=ev.target.result;prev.style.display='block';
+    document.getElementById('upload-zone').style.display='none';
+    document.getElementById('edit-controls').style.display='block';
+  };
+  reader.readAsDataURL(f);
+}
+
+function setEditMode(btn) {
+  document.querySelectorAll('.edit-tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  editMode=btn.dataset.mode;
+  document.getElementById('edit-img2img').style.display=editMode==='img2img'?'block':'none';
+  document.getElementById('edit-upscale').style.display=editMode==='upscale'?'block':'none';
+}
+
+const uploadZone=document.getElementById('upload-zone');
+uploadZone.addEventListener('dragover',e=>{e.preventDefault();uploadZone.classList.add('drag');});
+uploadZone.addEventListener('dragleave',()=>uploadZone.classList.remove('drag'));
+uploadZone.addEventListener('drop',e=>{e.preventDefault();uploadZone.classList.remove('drag');const f=e.dataTransfer.files[0];if(f?.type.startsWith('image/')){const dt=new DataTransfer();dt.items.add(f);document.getElementById('img-file').files=dt.files;loadEditImage({files:dt.files});}});
+
+// ═══ MODAL ═══
+function openModal(src) {
+  modalImgSrc=src;
+  document.getElementById('modal-img').src=src;
+  document.getElementById('modal').classList.add('show');
+}
+function closeModal(){document.getElementById('modal').classList.remove('show');}
+function downloadModalImg(){downloadImg(modalImgSrc);}
+function sendToEdit(){
+  if(!modalImgSrc)return;
+  editImageB64=modalImgSrc;
+  const prev=document.getElementById('upload-preview');
+  prev.src=modalImgSrc;prev.style.display='block';
+  document.getElementById('upload-zone').style.display='none';
+  document.getElementById('edit-controls').style.display='block';
+  closeModal();
+}
+function sendToEditFromCard(src){
+  editImageB64=src;
+  const prev=document.getElementById('upload-preview');
+  prev.src=src;prev.style.display='block';
+  document.getElementById('upload-zone').style.display='none';
+  document.getElementById('edit-controls').style.display='block';
+  document.getElementById('edit-prompt').focus();
+}
+
+// ═══ UTILS ═══
+function downloadImg(src) {
+  const a=document.createElement('a');a.href=src;a.download=`aiart-${Date.now()}.png`;a.click();
+}
+function clearResults(){allResults=[];document.getElementById('results-area').innerHTML='<div class="empty-state"><div class="icon">🎨</div><p>プロンプトを入力して生成してください</p></div>';}
+
+async function checkConn() {
+  setStatus(false,'確認中...');
+  try{const r=await fetch(sdUrl()+'/sdapi/v1/options');r.ok?setStatus(true,'接続済み'):setStatus(false,'エラー');}
+  catch{setStatus(false,'接続失敗');}
+}
+function setStatus(on,t){document.getElementById('sdot').className='status-dot'+(on?' on':'');document.getElementById('stext').textContent=t;}
+const sdUrl=()=>document.getElementById('sd-url').value.replace(/\/$/,'');
+
+// Mini history
+function saveMiniHist(){
+  try{const items=allResults.slice(0,12).map(r=>({src:r.src,prompt:r.prompt}));localStorage.setItem('aiart-hist',JSON.stringify(items));loadMiniHist();}catch{}
+}
+function loadMiniHist(){
+  try{
+    const items=JSON.parse(localStorage.getItem('aiart-hist')||'[]');
+    const el=document.getElementById('mini-hist');
+    if(!items.length){el.innerHTML='<div style="font-size:11px;color:var(--muted);">まだ生成していません</div>';return;}
+    el.innerHTML=items.map(item=>`
+      <div title="${item.prompt}" onclick="openModal('${item.src}')" style="width:52px;height:52px;border-radius:8px;overflow:hidden;cursor:pointer;border:2px solid var(--border);transition:border-color .15s;" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--border)'">
+        <img src="${item.src}" style="width:100%;height:100%;object-fit:cover;">
+      </div>`).join('');
+  }catch{}
+}
+
+init();
+</script>
+</body>
+</html>
